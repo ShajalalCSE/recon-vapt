@@ -1,0 +1,1166 @@
+# config/web_vapt.yaml
+# ====================
+# AI Red Team Harness v5.0 — Advanced Web VAPT Engine Configuration
+#
+# Enhanced with all 20 modern vulnerability modules, payload chaining,
+# adaptive rate limiting, multi-stage exploitation, and 2026-relevant
+# detection techniques. All values can be overridden via environment
+# variables or CLI flags.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Engine Metadata ──────────────────────────────────────────────────────────
+engine:
+  name: "AI Red Team Harness"
+  version: "5.0.0-2026"
+  mode: "defensive_security_assessment"
+  target_scope:
+    - "localhost:3333"
+    - "*.discovered.lab.local"
+  authorization: "explicit_owner_consent"
+  behavior: "non_destructive_validation"
+
+# ── Concurrency & Rate Limiting ───────────────────────────────────────────────
+concurrency:
+  max_parallel_scans: 8 # max scan modules running simultaneously
+  max_parallel_requests: 5 # max concurrent HTTP requests per module
+  max_parallel_hosts: 3 # max hosts scanned simultaneously
+  scan_queue_depth: 50 # internal module queue capacity
+
+rate_limiting:
+  requests_per_second: 10.0 # token-bucket rate for all HTTP requests
+  burst_size: 20 # max burst tokens
+  inter_request_delay_ms: 50 # minimum delay between requests
+  adaptive_backoff: true # increase delay on rate limit responses
+  backoff_multiplier: 2.0 # exponential backoff factor
+  max_backoff_seconds: 60 # maximum backoff delay
+  jitter_percent: 0.2 # random jitter to avoid pattern detection
+  respect_rate_limit_headers: true # honor Retry-After, X-RateLimit-*
+
+# ── Timeouts ─────────────────────────────────────────────────────────────────
+timeouts:
+  http_request_seconds: 15.0 # per-request HTTP timeout
+  tool_execution_seconds: 120 # external tool subprocess timeout
+  timing_probe_threshold: 4.5 # time-based injection threshold (seconds)
+  connect_timeout_seconds: 5.0 # TCP connect timeout
+  dns_resolution_seconds: 3.0 # DNS lookup timeout
+  tls_handshake_seconds: 5.0 # TLS handshake timeout
+  websocket_seconds: 10.0 # WebSocket connection timeout
+  scan_phase_timeout_seconds: 300 # per-phase timeout (recon/exploit/report)
+
+# ── TLS / HTTP Configuration ─────────────────────────────────────────────────
+http:
+  follow_redirects: true
+  max_redirects: 10
+  verify_tls: false # permit self-signed certs in lab
+  allow_insecure: true
+  user_agent: "Mozilla/5.0 (AI-RedTeam-VAPT/5.0; +https://lab.local) Gecko/20260101 Firefox/120.0"
+  custom_headers:
+    X-Authorized-Scanner: "ai-red-team-v5"
+    X-Contact: "security@lab.local"
+  proxy: "" # set HTTP_PROXY env var or fill here
+  cookie_jar: true # maintain session cookies across requests
+  http2: true # enable HTTP/2 support
+  http3: true # enable HTTP/3/QUIC support
+  websocket: true # enable WebSocket fuzzing
+
+# ── Scan Modules — set enabled: false to skip ────────────────────────────────
+modules:
+  # ── Classic OWASP Top 10 ──────────────────────────────────
+  sqli:
+    enabled: true
+    max_payloads: 30
+    detection_methods: ["error", "boolean", "time", "union", "stacked", "oob"]
+    dbms: ["mysql", "mssql", "postgresql", "oracle", "sqlite"]
+    blind_precision: "high" # accurate time/boolean detection
+    time_threshold_seconds: 2.0 # minimum sleep for time-based detection
+
+  xss:
+    enabled: true
+    max_payloads: 25
+    contexts: ["html", "attribute", "script", "url", "css", "template", "json"]
+    detection_methods: ["reflected", "stored", "dom", "mutation", "polyglot"]
+    csp_analysis: true
+    dom_sink_detection: true
+
+  idor:
+    enabled: true
+    detection_methods:
+      ["sequential", "uuid_guess", "hash_collision", "role_escalation"]
+    test_objects_per_endpoint: 5
+    parameter_names: ["id", "uid", "user_id", "account", "order", "document"]
+
+  lfi:
+    enabled: true
+    max_payloads: 25
+    include_wrappers: true
+    log_poisoning: true
+    php_wrappers:
+      [
+        "php://filter",
+        "php://input",
+        "data://",
+        "expect://",
+        "file://",
+        "zip://",
+        "phar://",
+      ]
+    protocol_abuse: true
+
+  rfi:
+    enabled: true
+    max_payloads: 10
+    test_urls:
+      - "http://attacker-controlled-lab.local/evil.txt"
+      - "http://127.0.0.1:3333/"
+      - "data://text/plain;base64,PD9waHAgc3lzdGVtKCdpZCcpOyA/Pg=="
+
+  command_injection:
+    enabled: true
+    max_payloads: 20
+    detection_methods: ["timing", "oob_dns", "oob_http", "output", "error"]
+    platforms: ["unix", "windows", "powershell"]
+    reverse_shell_detection: false # detect but don't deploy
+
+  csrf:
+    enabled: true
+    detection_methods:
+      [
+        "header_analysis",
+        "token_analysis",
+        "origin_check",
+        "same_site_analysis",
+      ]
+    test_state_changing: true
+    verify_custom_headers:
+      ["X-CSRF-Token", "X-XSRF-Token", "csrf-token", "csrfmiddlewaretoken"]
+
+  auth:
+    enabled: true
+    detection_methods:
+      - session_fixation
+      - cookie_flags
+      - jwt_analysis
+      - brute_force_detection
+      - password_policy
+      - mfa_bypass
+      - oauth_misconfiguration
+
+  file_upload:
+    enabled: true
+    detection_methods:
+      - extension_bypass
+      - mime_bypass
+      - magic_byte_manipulation
+      - double_extension
+      - null_byte_filename
+      - polyglot_content
+    test_executable: false # detect upload vuln but don't exec
+    blocked_extensions:
+      [".exe", ".sh", ".pl", ".py", ".asp", ".aspx", ".jsp", ".war"]
+
+  security_headers:
+    enabled: true
+    required_headers:
+      - Strict-Transport-Security
+      - Content-Security-Policy
+      - X-Content-Type-Options
+      - X-Frame-Options
+      - X-XSS-Protection
+      - Referrer-Policy
+      - Permissions-Policy
+      - Cross-Origin-Embedder-Policy
+      - Cross-Origin-Opener-Policy
+      - Cross-Origin-Resource-Policy
+
+  tls_analysis:
+    enabled: true
+    test_ssl_v2: true
+    test_ssl_v3: true
+    test_tls_v1_0: true
+    test_tls_v1_1: true
+    test_tls_v1_2: true
+    test_tls_v1_3: true
+    weak_cipher_detection: true
+    certificate_validation: true
+    poodle_detection: true
+    heartbleed_detection: true
+
+  cors:
+    enabled: true
+    test_origins:
+      - "null"
+      - "https://evil.com"
+      - "https://attacker.example.com"
+      - "http://localhost:9999"
+      - "data:"
+      - "file://"
+      - "https://*.evil.com"
+    test_methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    test_credentials: true
+
+  sensitive_files:
+    enabled: true
+    detect_git_exposure: true
+    detect_svn_exposure: true
+    detect_hg_exposure: true
+    detect_env_files: true
+    detect_backup_files: true
+    detect_config_files: true
+    detect_database_dumps: true
+    detect_log_files: true
+    detect_sqlite_files: true
+    detect_composer_npm_files: true
+    detect_docker_compose: true
+
+  debug_endpoints:
+    enabled: true
+    detect_actuator: true
+    detect_swagger: true
+    detect_graphiql: true
+    detect_phpinfo: true
+    detect_server_status: true
+    detect_console: true
+    detect_database_admin: true
+    detect_ide_remote_debug: true
+
+  ssrf:
+    enabled: true
+    detection_methods: ["timing", "oob", "error", "redirect"]
+    oob_collaborator: "http://collab.lab.local"
+    test_cloud_metadata: true
+    test_internal_services: true
+    test_dns_rebinding: true
+    internal_ranges:
+      - "127.0.0.0/8"
+      - "10.0.0.0/8"
+      - "172.16.0.0/12"
+      - "192.168.0.0/16"
+      - "169.254.169.254/32"
+
+  open_redirect:
+    enabled: true
+    test_urls:
+      - "https://evil.com"
+      - "//evil.com"
+      - "https://evil.com@localhost:3333"
+      - "javascript:alert(1)"
+      - "data:text/html,<script>alert(1)</script>"
+      - "///evil.com"
+      - "https://evil.com.evil.com"
+
+  graphql:
+    enabled: true
+    detection_methods:
+      - introspection
+      - field_suggestion
+      - n_plus_one
+      - batch_attack
+      - depth_attack
+      - alias_overload
+      - null_injection
+      - sql_injection
+      - nosql_injection
+      - auth_bypass
+    introspection_required: false
+    max_depth: 15
+    max_aliases: 1000
+    max_batch_size: 100
+
+  jwt:
+    enabled: true
+    detection_methods:
+      - none_algorithm
+      - algorithm_confusion
+      - weak_secret
+      - kid_injection
+      - jku_injection
+      - jwk_injection
+      - x5u_injection
+      - claim_manipulation
+      - exp_bypass
+      - audience_confusion
+    secret_dictionary: "payloads/web/jwt.txt"
+    public_key_rotation: true
+    test_post_quantum: true
+
+  prototype_pollution:
+    enabled: true
+    detection_methods:
+      - server_side
+      - client_side
+      - structured_clone
+      - merge_bypass
+      - object_assign
+    sinks:
+      - "structuredClone"
+      - "Object.assign"
+      - "Object.merge"
+      - "jQuery.extend"
+      - "lodash.merge"
+      - "_.set"
+      - "JSON.parse"
+      - "MessageChannel"
+
+  # ── 2026 Advanced Modules ──────────────────────────────────
+  jwt_algorithm_confusion:
+    enabled: true
+    algorithms:
+      - "none"
+      - "None"
+      - "NONE"
+      - "null"
+      - "HS256"
+      - "HS384"
+      - "HS512"
+    test_public_key_as_secret: true
+    test_post_quantum_downgrade: true # CRYSTALS-Dilithium → HS256
+
+  wasm_memory_corruption:
+    enabled: true
+    test_edge_runtime: true
+    test_wasm_gc_heap_spray: true
+    max_wasm_payloads: 5
+    runtime_targets:
+      ["cloudflare_workers", "deno", "v8_isolates", "fastly_compute"]
+
+  css_container_injection:
+    enabled: true
+    test_container_queries: true
+    test_has_selector: true
+    test_layout_timing: true
+    test_csp_bypass: true
+
+  http3_stream_side_channel:
+    enabled: true
+    test_quic_stream_isolation: true
+    test_stream_cancellation_timing: true
+    test_cross_origin_leakage: true
+
+  environment_variable_leakage:
+    enabled: true
+    test_import_meta_resolve: true
+    test_esm_module_graph: true
+    test_package_json_abuse: true
+    test_nodejs_version: [20, 22]
+
+  async_hooks_context_poisoning:
+    enabled: true
+    test_asynclocalstorage: true
+    test_async_hooks: true
+    test_worker_pool_isolation: true
+    test_promise_chain_injection: true
+
+  http_smuggling_webtransport:
+    enabled: true
+    test_http3_webtransport: true
+    test_pseudo_header_injection: true
+    test_waf_bypass_http_alt: true
+
+  mongodb_aggregation_injection:
+    enabled: true
+    test_accumulator_injection: true
+    test_function_operator: true
+    test_project_expression: true
+    test_nosql_rce: true
+
+  dom_clobbering:
+    enabled: true
+    test_sandbox_bypass: true
+    test_csp_bypass: true
+    test_dom_api_override: true
+    test_spa_hijacking: true
+
+  server_timing_side_channel:
+    enabled: true
+    test_blind_sqli_timing: true
+    test_precision_timing: true
+    test_sub_ms_detection: true
+    test_waf_bypass_via_coalescing: true
+
+  web_crypto_api_timing:
+    enabled: true
+    test_subtle_encrypt_timing: true
+    test_subtle_sign_timing: true
+    test_performance_api: true
+    test_key_recovery: true
+
+  import_map_override:
+    enabled: true
+    test_shared_worker_poisoning: true
+    test_cross_tab_injection: true
+    test_module_url_override: true
+
+  cache_stamping:
+    enabled: true
+    test_stale_while_revalidate: true
+    test_stale_if_error: true
+    test_cdn_poisoning: true
+    test_origin_remediation_bypass: true
+
+  webauthn_rp_id_confusion:
+    enabled: true
+    test_subdomain_rpid: true
+    test_regex_matching: true
+    test_samesite_strict_bypass: true
+    test_passkey_reuse: true
+
+  deno_node_compat_deserialization:
+    enabled: true
+    test_node_compat: true
+    test_structured_clone_sandbox: true
+    test_error_stack_poly: true
+    test_proxy_trap_escape: true
+
+  http3_0rtt_replay:
+    enabled: true
+    test_early_data_replay: true
+    test_anti_replay_window: true
+    test_idempotent_endpoint_abuse: true
+    test_rate_limit_bypass: true
+
+  # ── GraphQL N+1 / Batching ────────────────────────────────
+  graphql_n_plus_one:
+    enabled: true
+    test_typename_batching: true
+    test_subgraph_resolver_exhaustion: true
+    test_amplification_ratio: true
+    max_batch_size: 500
+
+# ── Crawling ─────────────────────────────────────────────────────────────────
+crawl:
+  max_depth: 5 # maximum link-following depth
+  max_urls: 250 # stop after discovering this many URLs
+  follow_redirects: true
+  respect_robots: false # ignore robots.txt for thorough scanning
+  respect_sitemap: true # parse sitemap.xml for seeds
+  parse_javascript: true # crawl SPA/React/Angular apps
+  parse_js_rendered: true # use headless browser for JS rendering
+  crawl_websocket: true # discover WebSocket endpoints
+  crawl_graphql: true # discover GraphQL endpoints
+  user_agent: "Mozilla/5.0 (AI-RedTeam-VAPT/5.0; +https://lab.local) Gecko/20260101 Firefox/120.0"
+  seeds: # initial URLs to start crawling from
+    - "http://localhost:3333/"
+    - "http://localhost:3333/api"
+    - "http://localhost:3333/login"
+  exclude_patterns:
+    - "logout"
+    - "signout"
+    - "*/assets/*"
+    - "*/static/*"
+    - "*/images/*"
+    - "*/fonts/*"
+
+# ── External Tools ────────────────────────────────────────────────────────────
+tools:
+  httpx:
+    enabled: true
+    path: httpx
+    flags:
+      [
+        "-silent",
+        "-follow-redirects",
+        "-title",
+        "-tech-detect",
+        "-status-code",
+        "-content-length",
+      ]
+    probe_methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    timeout: 10
+
+  nuclei:
+    enabled: true
+    path: nuclei
+    templates: ["cves/", "misconfiguration/", "vulnerabilities/", "exposures/"]
+    severity_filter: "low,medium,high,critical"
+    exclude_severity: "info"
+    rate_limit: 150
+    concurrency: 50
+    flags: ["-silent", "-j", "-stats", "-json-export"]
+
+  nikto:
+    enabled: true
+    path: nikto
+    flags: ["-nointeractive", "-Tuning", "123456789abc", "-Plugins", "@@ALL"]
+    max_time_per_host: 300
+
+  nmap:
+    enabled: true
+    path: nmap
+    port_range: "1-10000"
+    service_detection: true
+    os_detection: true
+    script_scan:
+      [
+        "http-enum",
+        "http-headers",
+        "http-methods",
+        "http-title",
+        "http-server-header",
+      ]
+    timing_template: "T4"
+    flags: ["-sV", "-sC", "-O", "--open"]
+
+  katana:
+    enabled: true
+    path: katana
+    flags: ["-silent", "-jc", "-kf", "all", "-d", "5", "-aff", "jsonl"]
+    headless: false
+
+  subfinder:
+    enabled: true
+    path: subfinder
+    sources:
+      [
+        "alienvault",
+        "anubis",
+        "certspotter",
+        "crtsh",
+        "dnsdumpster",
+        "hackertarget",
+        "rapiddns",
+        "shodan",
+        "virustotal",
+        "waybackarchive",
+      ]
+    recursive: true
+
+  gau:
+    enabled: true
+    path: gau
+    flags:
+      [
+        "--subs",
+        "--blacklist",
+        "png,jpg,gif,jpeg,css,woff,woff2,ttf,eot,svg,ico",
+      ]
+
+  whatweb:
+    enabled: true
+    path: whatweb
+    aggression_level: 3
+    flags: ["--color=never", "--quiet"]
+
+  testssl:
+    enabled: true
+    path: testssl.sh
+    flags: ["--color=0", "--quiet", "--warnings=off"]
+    severity: "medium"
+
+  # ── Additional 2026 Tools ─────────────────────────────────
+  feroxbuster:
+    enabled: true
+    path: feroxbuster
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt"
+    threads: 50
+    status_codes: "200,204,301,302,307,401,403,405,500"
+
+  ffuf:
+    enabled: true
+    path: ffuf
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+    threads: 100
+    matcher_status: "200,204,301,302,307,401,403,405,500"
+
+  amass:
+    enabled: true
+    path: amass
+    config: "/etc/amass/config.ini"
+    mode: "passive"
+
+  waybackurls:
+    enabled: true
+    path: waybackurls
+
+  subjack:
+    enabled: true
+    path: subjack
+    wordlist: "/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt"
+    timeout: 10
+    ssl: false
+    all: true
+
+  gotator:
+    enabled: true
+    path: gotator
+    depth: 2
+    numbers: true
+
+# ── Payload Files ─────────────────────────────────────────────────────────────
+payloads:
+  sqli: payloads/web/sqli.txt
+  xss: payloads/web/xss.txt
+  lfi: payloads/web/lfi.txt
+  traversal: payloads/web/traversal.txt
+  command_injection: payloads/web/command_injection.txt
+  jwt: payloads/web/jwt.txt
+  graphql: payloads/web/graphql.txt
+  ssti: payloads/web/ssti.txt
+  ssrf: payloads/web/ssrf.txt
+  open_redirect: payloads/web/open_redirect.txt
+  prototype_pollution: payloads/web/prototype_pollution.txt
+  websocket: payloads/web/websocket.txt
+  wasm_exploit: payloads/web/wasm_exploit.wasm
+  http3_fuzz: payloads/web/http3_fuzz.txt
+  deno_exploit: payloads/web/deno_exploit.js
+
+# ── Sensitive Paths ──────────────────────────────────────────────────────────
+sensitive_paths:
+  # Version control
+  - /.git/config
+  - /.git/HEAD
+  - /.git/index
+  - /.git/logs/HEAD
+  - /.git/refs/heads/master
+  - /.git/refs/heads/main
+  - /.svn/entries
+  - /.svn/wc.db
+  - /.hg/dirstate
+  - /.hg/store/00manifest.i
+  - /CVS/Root
+  - /CVS/Repository
+
+  # Environment / config
+  - /.env
+  - /.env.local
+  - /.env.production
+  - /.env.development
+  - /.env.staging
+  - /.env.backup
+  - /env.php
+  - /.config
+  - /config.json
+  - /config.php
+  - /config.yaml
+  - /config.yml
+  - /config.toml
+  - /appsettings.json
+  - /appsettings.Development.json
+  - /appsettings.Production.json
+  - /secrets.json
+  - /credentials.json
+  - /service-account.json
+  - /firebase-credentials.json
+
+  # Backups
+  - /backup.zip
+  - /backup.tar.gz
+  - /backup.tar.bz2
+  - /backup.sql
+  - /backup.sql.gz
+  - /backup.db
+  - /backup.sqlite
+  - /db.sql
+  - /db.sqlite
+  - /database.sql
+  - /dump.sql
+  - /dump.rdb
+  - /data.sql
+  - /www.zip
+  - /www.tar.gz
+  - /site.zip
+  - /site.tar.gz
+  - /mysql_backup.sql
+
+  # PHP
+  - /phpinfo.php
+  - /info.php
+  - /phpinfo.php.bak
+  - /info.php.bak
+  - /wp-config.php
+  - /wp-config.php.bak
+  - /wp-config-sample.php
+  - /configuration.php
+  - /config.inc.php
+  - /settings.php
+  - /admin/config.php
+
+  # Windows / IIS
+  - /web.config
+  - /web.config.bak
+  - /Global.asax
+  - /bin/*.dll
+  - /App_Data/*.mdf
+  - /App_Data/*.ldf
+
+  # Auth
+  - /.htpasswd
+  - /.htaccess
+  - /htpasswd
+  - /htaccess
+
+  # Standard files
+  - /robots.txt
+  - /sitemap.xml
+  - /crossdomain.xml
+  - /clientaccesspolicy.xml
+  - /.DS_Store
+  - /Thumbs.db
+  - /security.txt
+  - /humans.txt
+
+  # Server status
+  - /server-status
+  - /server-status/
+  - /server-info
+  - /server-info/
+
+  # Dependencies
+  - /package.json
+  - /package-lock.json
+  - /yarn.lock
+  - /composer.json
+  - /composer.lock
+  - /Gemfile
+  - /Gemfile.lock
+  - /go.mod
+  - /go.sum
+  - /pom.xml
+  - /build.gradle
+  - /requirements.txt
+  - /Pipfile
+  - /Pipfile.lock
+  - /Cargo.toml
+  - /Cargo.lock
+
+  # Docker
+  - /Dockerfile
+  - /docker-compose.yml
+  - /docker-compose.yaml
+  - /.dockerignore
+
+  # CI/CD
+  - /.github/workflows/*.yml
+  - /.gitlab-ci.yml
+  - /.circleci/config.yml
+  - /Jenkinsfile
+  - /Jenkinsfile.bak
+  - /.travis.yml
+
+  # Cloud
+  - /.aws/credentials
+  - /.aws/config
+  - /.gcp/credentials.json
+  - /.azure/credentials
+  - /credentials.properties
+
+# ── Debug / Admin Endpoints ──────────────────────────────────────────────────
+debug_endpoints:
+  # Admin panels
+  - /admin
+  - /admin/
+  - /administrator
+  - /administrator/
+  - /admin.php
+  - /admin_area
+  - /admin_area/
+  - /panel
+  - /panel/
+  - /cpanel
+  - /dashboard
+
+  # Debug
+  - /debug
+  - /debug/
+  - /console
+  - /shell
+  - /terminal
+  - /eval
+  - /phpinfo
+  - /info
+  - /test
+  - /test.php
+
+  # Spring Boot Actuator
+  - /actuator
+  - /actuator/
+  - /actuator/health
+  - /actuator/info
+  - /actuator/env
+  - /actuator/env/-
+  - /actuator/beans
+  - /actuator/configprops
+  - /actuator/mappings
+  - /actuator/trace
+  - /actuator/httptrace
+  - /actuator/dump
+  - /actuator/heapdump
+  - /actuator/logfile
+  - /actuator/loggers
+  - /actuator/metrics
+
+  # Monitoring
+  - /metrics
+  - /health
+  - /health/
+  - /status
+  - /status/
+  - /_ah/admin
+  - /_ah/health
+  - /_ah/start
+  - /_ah/stop
+  - /_debug/
+  - /__debug__
+
+  # Database admin
+  - /phpmyadmin
+  - /phpmyadmin/
+  - /pma
+  - /pma/
+  - /adminer.php
+  - /adminer
+  - /pgadmin
+  - /phppgadmin
+  - /mysql-admin
+  - /sqlbuddy
+  - /sqlite
+
+  # API / Docs
+  - /graphql
+  - /graphiql
+  - /playground
+  - /voyager
+  - /altair
+  - /api
+  - /api/
+  - /api/v1
+  - /api/v1/
+  - /api/v2
+  - /api/v2/
+  - /api/v3
+  - /api/v3/
+  - /swagger
+  - /swagger/
+  - /swagger-ui
+  - /swagger-ui.html
+  - /swagger-ui/
+  - /api-docs
+  - /api-docs/
+  - /openapi.json
+  - /openapi.yaml
+  - /openapi.yml
+  - /docs
+  - /docs/
+
+  # Development
+  - /.gitlab-ci.yml
+  - /Jenkinsfile
+  - /Dockerfile
+  - /trace
+  - /tracer
+  - /profiler
+  - /xdebug
+  - /_profiler
+  - /_error
+  - /dev
+  - /dev/
+  - /development
+  - /staging
+  - /sandbox
+
+  # Cloud metadata proxy (SSRF abuse)
+  - /proxy/169.254.169.254/
+  - /proxy/metadata/
+  - /api/proxy/latest/meta-data/
+
+# ── Open Redirect Test Params ─────────────────────────────────────────────────
+redirect_params:
+  - url
+  - redirect
+  - redirect_url
+  - redirect_uri
+  - return
+  - return_url
+  - next
+  - next_url
+  - target
+  - destination
+  - dest
+  - goto
+  - callback
+  - continue
+  - forward
+  - forward_url
+  - to
+  - out
+  - view
+  - dir
+  - show
+  - file
+  - document
+  - link
+  - href
+  - ref
+  - page
+  - load
+  - path
+  - redirect_to
+  - redir
+  - rurl
+  - ru
+  - u
+  - go
+  - wd
+  - service
+  - domain
+  - referral
+  - referer
+
+# ── SSRF-Prone Parameter Names ───────────────────────────────────────────────
+ssrf_params:
+  - url
+  - uri
+  - link
+  - src
+  - source
+  - href
+  - fetch
+  - load
+  - path
+  - file
+  - img
+  - image
+  - proxy
+  - host
+  - endpoint
+  - webhook
+  - callback
+  - return_url
+  - redirect_url
+  - avatar_url
+  - picture_url
+  - photo_url
+  - document_url
+  - attachment_url
+  - file_url
+  - download_url
+  - upload_url
+  - external_url
+  - remote_url
+  - website
+  - site
+  - blog
+  - feed
+  - rss
+  - xml_url
+  - json_url
+  - yaml_url
+  - config_url
+  - api_url
+  - service_url
+  - notify_url
+  - notification_url
+  - hook_url
+  - webhook_url
+  - callback_url
+  - callback_uri
+  - return_uri
+  - redirect_uri
+  - request_uri
+  - forward_uri
+  - destination
+  - dest_url
+  - target_url
+  - base_url
+  - asset_url
+  - media_url
+  - thumbnail_url
+  - icon_url
+  - favicon_url
+  - manifest_url
+  - import_url
+  - export_url
+  - sync_url
+  - clone_url
+  - git_url
+  - svn_url
+  - repo_url
+  - endpoint_url
+  - gateway_url
+  - origin_url
+  - referer
+  - referrer
+  - origin
+  - domain
+  - hostname
+
+# ── Report Output ─────────────────────────────────────────────────────────────
+reporting:
+  output_dir: reports/web_vapt
+  formats: [json, markdown, html, pdf, sarif, cyclonedx]
+  include_evidence: true
+  include_request_response: true
+  include_remediation: true
+  include_cwe: true
+  include_owasp: true
+  include_cvss: true
+  include_confidence: true
+  min_confidence_threshold: 0.2 # suppress findings below this confidence
+  deduplicate_findings: true
+  deduplication_window_seconds: 300
+  report_owner: "AI Red Team"
+  report_classification: "CONFIDENTIAL - Authorized Security Assessment"
+  executive_summary: true
+  risk_matrix: true
+  timeline_events: true
+  exploitability_score: true
+  fix_priority: true
+  false_positive_analysis: true
+  severity_colors: true
+
+  notifications:
+    enabled: false
+    slack_webhook: ""
+    email: ""
+    on_complete: true
+    on_critical: true
+
+# ── Safe Mode ────────────────────────────────────────────────────────────────
+safe_mode:
+  enabled: true
+  skip_destructive_checks: true # never test upload/exec even if target is owned
+  skip_denial_of_service: true # no DoS / resource exhaustion tests
+  skip_credential_stuffing: true # no password spraying
+  skip_malware_deploy: true # no malware/persistence deployment
+  max_requests_per_endpoint: 100 # hard cap per endpoint
+  max_requests_per_module: 500 # hard cap per module
+  max_total_requests: 5000 # hard cap per scan
+  skip_extensions:
+    - .pdf
+    - .jpg
+    - .jpeg
+    - .png
+    - .gif
+    - .ico
+    - .css
+    - .woff
+    - .woff2
+    - .ttf
+    - .eot
+    - .svg
+    - .mp4
+    - .mp3
+    - .avi
+    - .mov
+    - .wav
+    - .flac
+    - .zip
+    - .tar.gz
+    - .rar
+    - .7z
+
+# ── AI / ML Integration ──────────────────────────────────────────────────────
+ai:
+  enabled: true
+  model: "local"
+  context_window: 8192
+  detection_enhancement: true # use AI to reduce false positives
+  payload_generation: true # use AI to generate context-specific payloads
+  bypass_suggestion: true # suggest WAF/security bypass techniques
+  report_writing: true # AI-assisted report generation
+  priority_learning: true # learn what findings matter for this target
+  anomaly_detection: true # detect scan interference / countermeasures
+
+# ── WebSocket Fuzzing ────────────────────────────────────────────────────────
+websocket:
+  enabled: true
+  max_messages_per_connection: 50
+  payloads:
+    - "<script>alert(1)</script>"
+    - "' OR '1'='1"
+    - "../../../etc/passwd"
+    - "$(id)"
+    - "{{7*7}}"
+    - '{"__proto__":{"admin":true}}'
+    - "null"
+    - "undefined"
+    - "{}"
+    - "[]"
+
+# ── Headless Browser (JS Rendering / DOM Fuzzing) ──────────────────────────
+browser:
+  enabled: true
+  engine: "chromium" # chromium, firefox, webkit
+  headless: true
+  viewport_width: 1920
+  viewport_height: 1080
+  js_timeout_seconds: 10
+  dom_sink_monitoring: true
+  event_handler_fuzzing: true
+  mutation_observer: true
+  console_log_capture: true
+  network_tab_capture: true
+
+# ── HTTP/2 & HTTP/3 Fuzzing ─────────────────────────────────────────────────
+http2_fuzz:
+  enabled: true
+  hpack_table_poisoning: true
+  stream_priority_manipulation: true
+  max_concurrent_streams_test: true
+  server_push_test: true
+
+http3_fuzz:
+  enabled: true
+  quic_version_downgrade: true
+  stream_cancellation_flood: true
+  0rtt_replay_test: true
+  connection_migration_test: true
+  transport_parameter_manipulation: true
+
+# ── OOB (Out-of-Band) Collaborator ──────────────────────────────────────────
+oob:
+  enabled: true
+  collaborator_url: "http://collab.lab.local"
+  dns_callback_domain: "dns.lab.local"
+  callback_endpoint: "/oob/callback"
+  poll_interval_seconds: 2
+  max_wait_seconds: 30
+  protocols: ["dns", "http", "https", "ldap", "smb"]
+
+# ── YARA / Pattern Matching ─────────────────────────────────────────────────
+yara:
+  enabled: true
+  rule_paths:
+    - "rules/web_vulnerabilities.yara"
+    - "rules/credentials.yara"
+    - "rules/secrets.yara"
+  scan_responses: true
+  scan_source_code: true
+
+# ── Global Filters ──────────────────────────────────────────────────────────
+filters:
+  exclude_status_codes:
+    - 404
+    - 410
+  exclude_content_types:
+    - "image/*"
+    - "font/*"
+    - "audio/*"
+    - "video/*"
+  exclude_url_patterns:
+    - "*/logout"
+    - "*/signout"
+    - "*/assets/*"
+    - "*/static/*"
+  include_url_patterns: [] # empty = include all
+  max_response_body_bytes: 1048576 # 1MB max to avoid OOM
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level: "info" # debug, info, warn, error
+  format: "json" # json, text
+  output: "stdout" # stdout, file
+  file: "logs/vapt.log"
+  verbose: false
+  debug_payloads: false # log every payload sent (warning: large)
+  request_log: "logs/requests.jsonl"
+  response_log: "logs/responses.jsonl"
+  error_log: "logs/errors.log"
+
+# ── Health Check ────────────────────────────────────────────────────────────
+health_check:
+  enabled: true
+  ping_endpoint: "/health"
+  expected_status: 200
+  timeout_seconds: 5
+  retry_count: 3
+  retry_delay_seconds: 2

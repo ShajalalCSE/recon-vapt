@@ -1,0 +1,112 @@
+# config/safety.yaml
+# ===================
+# AI Red Team Harness v3 — Safety & Allowlist Configuration
+#
+# This file controls ALL safety gates in the framework.
+# Review carefully before adding new targets.
+# ─────────────────────────────────────────────────────────
+
+# ── Allowlist ─────────────────────────────────────────────
+# Every target ID in targets.yaml MUST appear here too.
+# The framework will refuse to attack any target not listed.
+allowlist:
+  # Approved target IDs (must match targets.yaml exactly)
+  targets:
+    - id: local-ollama
+      endpoint_prefix: "http://localhost"
+      # Optional: fingerprint locks the endpoint to a specific URL
+      # fingerprint: "sha256:<hash>"
+
+    # Uncomment to approve additional targets:
+    # - id: lm-studio-local
+    #   endpoint_prefix: "http://localhost"
+
+    # - id: ollama-mistral
+    #   endpoint_prefix: "http://localhost"
+
+  # Blocked endpoint prefixes — these are NEVER allowed regardless of ID
+  blocked_prefixes:
+    - "https://api.openai.com"
+    - "https://anthropic.com"
+    - "https://api.anthropic.com"
+    - "https://api.cohere.ai"
+    - "https://api.mistral.ai"
+    - "https://generativelanguage.googleapis.com"
+    - "https://openrouter.ai"
+
+  # Reject any target whose host is not localhost / private network
+  # Set to false ONLY if testing on an isolated internal network
+  allow_local_only: true
+
+  # Require HTTPS for all non-localhost targets
+  require_https: false
+
+# ── Sandbox ───────────────────────────────────────────────
+sandbox:
+  # Require the .lab_mode_enabled marker file to be present
+  # Create it with: python start_assessment.py --create-lab-marker
+  require_lab_marker: true
+
+  # Optionally verify that target hostnames resolve to local IPs
+  check_dns_isolation: false
+
+  # Additional hostnames to block (beyond the built-in production list)
+  blocked_hostnames: []
+
+# ── Prompt Guard ──────────────────────────────────────────
+prompt_guard:
+  # Master switch — set to false ONLY for debugging (NOT recommended)
+  enabled: true
+
+  # Strict mode: block on ANY rule evaluation error (safer, less tolerant)
+  strict_mode: false
+
+  # Custom regex patterns to block (in addition to built-in rules)
+  # Each entry is a Python regex string
+  blocked_patterns: []
+  # Example:
+  # blocked_patterns:
+  #   - "your_internal_codename"
+  #   - "(?i)classified_project_name"
+
+# ── Kill Switch ───────────────────────────────────────────
+kill_switch:
+  # These mirror settings.yaml values but can be overridden here
+  max_attack_budget: 500
+  max_session_duration_seconds: 7200
+  max_success_rate_threshold: 0.95
+  max_critical_vulns: 20
+
+# ── Web VAPT Allowlist ────────────────────────────────────────
+# URLs explicitly approved for web application security assessment.
+# Hosts NOT listed here will be rejected by WebVAPTEngine regardless
+# of the allow_local_only flag above.
+web_vapt:
+  allowed_urls:
+    - "http://localhost"
+    - "https://localhost"
+    - "http://127.0.0.1"
+    - "https://127.0.0.1"
+    - "http://0.0.0.0"
+    - "https://missionhacker.com"
+    - "https://www.missionhacker.com"
+    - "https://cosmic.net.in"
+    - "http://192.168.0.102"
+    - "http://192.168.0.102/dvwa"
+    - "https://cp-master.shop"
+    - "https://cp-master.shop/dashboard.php"
+    - "https://server-pro.shop"
+    # Add authorised external targets below (with explicit operator approval):
+    # - "https://your-owned-domain.example.com"
+    # - "http://192.168.1.100"   # internal lab host
+
+  # Hard-blocked CIDR ranges even for web VAPT (cloud metadata, loopback to others)
+  blocked_cidrs:
+    - "169.254.169.254/32" # AWS/GCP/Azure metadata service
+    - "100.100.100.200/32" # Alibaba Cloud metadata
+
+  # Maximum scan duration for a single web VAPT session
+  max_scan_duration_seconds: 3600
+
+  # Require lab marker even for web VAPT
+  require_lab_marker: true

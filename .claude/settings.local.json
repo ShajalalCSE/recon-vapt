@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from utils.burp_parser import parse_burp_request, ParsedBurpRequest; print\\('parser OK'\\)\")"
+    ]
+  }
+}
