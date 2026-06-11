@@ -1,7 +1,18 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c \"from utils.burp_parser import parse_burp_request, ParsedBurpRequest; print\\('parser OK'\\)\")"
+      "Bash(python -c \"from utils.burp_parser import parse_burp_request, ParsedBurpRequest; print\\('parser OK'\\)\")",
+      "Bash(Get-ChildItem -Path \"e:\\\\clab\\\\vapt\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "PowerShell(tree \"e:\\\\clab\\\\vapt\" -L 3)",
+      "Bash(python -c \"import modules.recon_tools; print\\('recon_tools OK'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python run_vapt.py --list-tools)",
+      "Bash(python run_vapt.py --help)",
+      "Bash(not exist *)",
+      "Bash(python -c \"from modules.web_vapt_engine import WebVAPTEngine; print\\('engine OK'\\)\")",
+      "Bash(python -c \"import run_vapt; print\\('run_vapt OK'\\)\")"
     ]
   }
 }

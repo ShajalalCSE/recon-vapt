@@ -2,18 +2,20 @@
 """
 run_vapt.py
 ===========
-Web VAPT Standalone Entry Point
-AI Red Team Harness v3 - Web Application Penetration Testing
+Web Application Vulnerability Assessment
+AI Red Team Harness v3 — Web VAPT only
 
 Usage:
   python run_vapt.py --target http://192.168.0.101/dvwa
   python run_vapt.py --target http://192.168.0.101/dvwa --llm
-  python run_vapt.py --target http://192.168.0.101/dvwa --llm --model llama3 --iter 5
+  python run_vapt.py --target http://192.168.0.101/dvwa --modules sqli,xss,lfi
   python run_vapt.py --target http://192.168.0.101/dvwa --cookie "PHPSESSID=abc123"
   python run_vapt.py --target http://192.168.0.101/dvwa --username admin --password secret
-  python run_vapt.py --target http://192.168.0.101/dvwa --modules sqli,xss,lfi
+  python run_vapt.py -r burp_request.txt
   python run_vapt.py --create-lab-marker
-  python run_vapt.py --dry-run --target http://192.168.0.101/dvwa
+
+For Kali recon tools (nmap, subfinder, ffuf, gobuster, etc.) use:
+  python run_recon.py --target http://192.168.0.101
 
 Authorised lab environments only.
 Python: 3.11+
@@ -29,13 +31,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Bootstrap: ensure this folder is on sys.path
+# Bootstrap
 # ---------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).parent.resolve()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Fix Windows console encoding for box-drawing characters
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 from utils.logger import get_logger, set_level
@@ -46,7 +47,7 @@ logger = get_logger(__name__)
 BANNER = """\
 +----------------------------------------------------------+
 |          AI Red Team Harness  v3.0                       |
-|          Web Application Penetration Testing             |
+|          Web Application Vulnerability Assessment        |
 |                                                          |
 |  *** AUTHORISED LAB ENVIRONMENTS ONLY ***                |
 +----------------------------------------------------------+"""
@@ -59,13 +60,13 @@ BANNER = """\
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="run_vapt.py",
-        description="Web VAPT - AI Red Team Harness v3",
+        description="Web VAPT — AI Red Team Harness v3",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     p.add_argument(
         "--target", metavar="URL",
-        help="Target URL to scan (must be in config/safety.yaml allowlist)",
+        help="Target URL (must be in config/safety.yaml allowlist)",
     )
     p.add_argument(
         "--output", metavar="DIR", default="reports/web",
@@ -104,9 +105,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--request", "-r", metavar="FILE",
         help=(
-            "Path to a raw HTTP request file exported from Burp Suite "
-            "(same as sqlmap -r).  Extracts target URL, headers, cookies, "
-            "session data, and parameters automatically.  "
+            "Path to a raw HTTP request file exported from Burp Suite. "
+            "Extracts target URL, headers, cookies, and parameters automatically. "
             "--target is optional when -r is used."
         ),
     )
@@ -149,7 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 # ---------------------------------------------------------------------------
-# Utility commands
+# Utility
 # ---------------------------------------------------------------------------
 
 def cmd_create_lab_marker() -> None:
@@ -170,7 +170,7 @@ async def run_scan(args: argparse.Namespace) -> int:
     if args.verbose:
         set_level("DEBUG")
 
-    # ── Parse Burp request file (optional) ────────────────────────────────
+    # ── Parse Burp request file ───────────────────────────────────────────
     burp: ParsedBurpRequest | None = None
     if args.request:
         req_path = Path(args.request)
@@ -183,14 +183,12 @@ async def run_scan(args: argparse.Namespace) -> int:
             print(f"  [ERROR] Failed to parse Burp request file: {exc}\n")
             return 1
 
-    # Target: explicit --target wins; fall back to URL from Burp file
     target_url = (args.target or "").strip()
     if not target_url and burp is not None:
         target_url = burp.url
     if not target_url:
         print("  [ERROR] --target URL is required (or provide a Burp file with -r).\n")
         print("  Example: python run_vapt.py --target http://192.168.0.101/dvwa\n")
-        print("           python run_vapt.py -r burp_request.txt\n")
         return 1
 
     print(f"  Target   : {target_url}")
@@ -202,8 +200,7 @@ async def run_scan(args: argparse.Namespace) -> int:
         print(f"  Method   : {burp.method}")
         param_count = len(burp.query_params) + len(burp.body_params)
         if param_count:
-            all_names = ", ".join(burp.all_param_names())
-            print(f"  Params   : {param_count} ({all_names})")
+            print(f"  Params   : {param_count} ({', '.join(burp.all_param_names())})")
         if burp.cookie_header:
             preview = burp.cookie_header[:50] + ("..." if len(burp.cookie_header) > 50 else "")
             print(f"  Cookies  : {preview}")
@@ -235,19 +232,19 @@ async def run_scan(args: argparse.Namespace) -> int:
         print("\n\n  Kill switch triggered. Stopping scan...\n")
         kill_switch.set()
 
+    import signal as _signal
     loop = asyncio.get_running_loop()
     try:
-        import signal
-        loop.add_signal_handler(signal.SIGINT, _sigint)
+        loop.add_signal_handler(_signal.SIGINT, _sigint)
     except (NotImplementedError, AttributeError):
-        pass  # Windows SIGINT limitation
+        def _win_sigint(sig, frame):
+            loop.call_soon_threadsafe(_sigint)
+        _signal.signal(_signal.SIGINT, _win_sigint)
 
-    module_filter = [m.strip() for m in args.modules.split(",")] if args.modules else None
-    basic_auth = (args.username, args.password) if args.username and args.password else None
-
-    # Cookie priority: explicit --cookie flag > Burp Cookie header
+    module_filter  = [m.strip() for m in args.modules.split(",")] if args.modules else None
+    basic_auth     = (args.username, args.password) if args.username and args.password else None
     effective_cookie = args.cookie or (burp.cookie_header if burp else None) or None
-    extra_headers    = burp.safe_headers if burp else {}
+    extra_headers  = burp.safe_headers if burp else {}
 
     engine = WebVAPTEngine(
         config_path=PROJECT_ROOT / "config" / "web_vapt.yaml",
@@ -268,24 +265,31 @@ async def run_scan(args: argparse.Namespace) -> int:
             "max_iterations": args.iter,
         }
 
+    # Disable Phase 3 external recon tools — use run_recon.py for that
+    engine._cfg.setdefault("recon", {})["tool_filter"] = []
+
     try:
         result = await engine.assess(target_url)
     except ValueError as exc:
         print(f"\n  [BLOCKED] {exc}\n")
         print("  Add the target URL to config/safety.yaml under web_vapt.allowed_urls\n")
         return 2
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        print("\n  Scan aborted before any results were collected.\n")
+        return 130
     except Exception as exc:
         logger.exception("Scan failed: %s", exc)
         print(f"\n  [ERROR] Scan failed: {exc}\n")
         return 1
 
+    interrupted = kill_switch.is_set()
     engine._cfg.setdefault("reporting", {})["output_dir"] = args.output
     report = await engine.generate_report(result)
 
-    # Print summary
+    # ── Summary ───────────────────────────────────────────────────────────
     rs = report.get("risk_summary", {})
     print(f"\n{'='*58}")
-    print(f"  WEB VAPT COMPLETE")
+    print(f"  WEB VAPT {'INTERRUPTED — PARTIAL REPORT' if interrupted else 'COMPLETE'}")
     print(f"{'='*58}")
     print(f"  Report ID   : {report.get('report_id', '?')}")
     print(f"  Target      : {result.target_url}")
@@ -297,15 +301,16 @@ async def run_scan(args: argparse.Namespace) -> int:
     print(f"    MEDIUM    : {rs.get('medium', 0)}")
     print(f"    LOW       : {rs.get('low', 0)}")
     print(f"    INFO      : {rs.get('info', 0)}")
-    print(f"  JSON Report : {report.get('json_path', '?')}")
+    print(f"\n  JSON Report : {report.get('json_path', '?')}")
     print(f"  MD Report   : {report.get('markdown_path', '?')}")
+    if interrupted:
+        print(f"\n  NOTE: Scan was stopped by Ctrl+C. Report contains partial results.")
     print(f"{'='*58}\n")
 
     if rs.get("critical", 0) > 0 or rs.get("high", 0) > 0:
         print("  NOTE: CRITICAL / HIGH findings detected.")
         print("  Review the Markdown report for remediation steps.\n")
 
-    # LLM agent summary
     lr = getattr(result, "llm_result", None)
     if lr is not None:
         print(f"{'--'*29}")
@@ -349,7 +354,7 @@ def main() -> None:
     try:
         code = asyncio.run(run_scan(args))
         sys.exit(code)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, asyncio.CancelledError):
         print("\n\n  Interrupted.\n")
         sys.exit(130)
     except Exception as exc:

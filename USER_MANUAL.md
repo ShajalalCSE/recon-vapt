@@ -12,40 +12,58 @@
 3. [Installation](#3-installation)
 4. [Safety System](#4-safety-system)
 5. [Quick Start](#5-quick-start)
-6. [Command Reference](#6-command-reference)
-7. [Burp Suite Integration](#7-burp-suite-integration)
-8. [Authentication Options](#8-authentication-options)
-9. [Module Selection](#9-module-selection)
-10. [Configuration Files](#10-configuration-files)
-11. [Scan Phases](#11-scan-phases)
-12. [Understanding Reports](#12-understanding-reports)
-13. [Scan Modules Reference](#13-scan-modules-reference)
-14. [Troubleshooting](#14-troubleshooting)
-15. [Workflow Examples](#15-workflow-examples)
+6. [run_vapt.py — Web Vulnerability Scanner](#6-run_vaptpy--web-vulnerability-scanner)
+7. [run_recon.py — Recon Tools Scanner](#7-run_reconpy--recon-tools-scanner)
+8. [Burp Suite Integration](#8-burp-suite-integration)
+9. [Authentication Options](#9-authentication-options)
+10. [Module Selection](#10-module-selection)
+11. [Configuration Files](#11-configuration-files)
+12. [Scan Phases](#12-scan-phases)
+13. [Understanding Reports](#13-understanding-reports)
+14. [Scan Modules Reference](#14-scan-modules-reference)
+15. [Troubleshooting](#15-troubleshooting)
+16. [Workflow Examples](#16-workflow-examples)
+17. [Recon Tools Reference](#17-recon-tools-reference)
 
 ---
 
 ## 1. Overview
 
-AI Red Team Harness v3 is a Python-based, non-destructive web application vulnerability assessment framework. It crawls a target, discovers attack surface elements, fires over 38 scan modules, validates findings, and generates detailed Markdown and JSON reports.
+AI Red Team Harness v3 is a Python-based, non-destructive web application security assessment framework split into two independent entry points:
+
+| Script | Purpose | Reports |
+|---|---|---|
+| `run_vapt.py` | Web vulnerability scanning (SQLi, XSS, IDOR, LFI, CORS, etc.) | `reports/web/` |
+| `run_recon.py` | Kali Linux recon tools (nmap, subfinder, ffuf, gobuster, etc.) | `reports/recon/` |
+
+Run them together for a full assessment, or independently as needed.
 
 **Key design principles:**
 - Every target must be explicitly allowlisted before any request is sent
 - Rate-limited by a token bucket — never floods the target
 - All checks are read-only; no payloads are written or executed on the target
 - Findings are validated and false-positive filtered before reporting
+- All subprocess calls use `asyncio.create_subprocess_exec` — never `shell=True`
 
-**Assessment flow:**
+### Web VAPT flow (`run_vapt.py`)
 
 ```
-Phase 1  →  Attack surface discovery (crawl + Burp seed)
+Phase 1  →  Attack surface discovery (crawl + katana + Burp seed)
 Phase 1b →  Merge Burp request data into surface (if -r used)
 Phase 2  →  38 scan modules run concurrently (max 8 at once)
-Phase 3  →  External tools (nuclei, nmap, nikto, etc.) if installed
 Phase 4  →  Deduplicate and confidence-threshold filter
 Phase 5  →  Evidence-gated validation agent
 Phase 6  →  LLM agent reasoning (optional, requires Ollama)
-         →  Report generation (Markdown + JSON)
+         →  Report written to reports/web/
+```
+
+### Recon flow (`run_recon.py`)
+
+```
+         →  29 Kali tools run concurrently (nmap, subfinder, ffuf, etc.)
+         →  Tools not found in PATH are silently skipped
+         →  Kill switch: Ctrl+C saves partial results immediately
+         →  Report written to reports/recon/
 ```
 
 ---
@@ -57,22 +75,41 @@ Phase 6  →  LLM agent reasoning (optional, requires Ollama)
 | Python | 3.11+ |
 | httpx | 0.27+ |
 | PyYAML | 6.0+ |
-| OS | Windows / Linux / macOS |
+| OS | Windows / Linux / macOS (Kali recommended for recon tools) |
 
-**Optional external tools** (improves coverage if installed in PATH):
+**Optional external tools** (used by `run_recon.py` — not found in PATH are silently skipped):
 
-| Tool | Purpose |
-|---|---|
-| `katana` | JavaScript-rendered crawling (SPA support) |
-| `nuclei` | Template-based CVE and misconfiguration scanning |
-| `nmap` | Port scan and service detection |
-| `nikto` | Web server misconfiguration scan |
-| `whatweb` | Technology fingerprinting |
-| `subfinder` | Subdomain enumeration |
-| `gau` | Historical URL discovery |
-| `feroxbuster` | Directory bruteforce |
-| `ffuf` | Parameter and path fuzzing |
-| `testssl.sh` | Deep TLS analysis |
+| Category | Tool | Purpose | Default |
+|---|---|---|---|
+| Network | `nmap` | Port scan, service detection, NSE scripts | yes |
+| Network | `masscan` | Fast full-range port sweep | no |
+| DNS | `nslookup` | A, AAAA, MX, NS, TXT, CNAME, SOA queries | yes |
+| DNS | `dig` | Detailed DNS records + zone transfer attempt | yes |
+| DNS | `dnsrecon` | Comprehensive DNS enum (std, SRV, brute, AXFR) | yes |
+| DNS | `dnsx` | Fast multi-type DNS resolver | no |
+| DNS | `fierce` | DNS brute force + zone walk | no |
+| DNS | `dnsenum` | DNS enumeration with subdomain brute force | no |
+| Subdomain | `subfinder` | Passive subdomain enumeration from 10+ sources | yes |
+| Subdomain | `amass` | Comprehensive subdomain enumeration | no |
+| Subdomain | `assetfinder` | Quick subdomain discovery | no |
+| Web Fuzz | `ffuf` | Fast directory/file/parameter fuzzing | yes |
+| Web Fuzz | `gobuster` | Dir, DNS, and vhost brute forcing | yes |
+| Web Fuzz | `feroxbuster` | Recursive directory fuzzing | no |
+| Web Fuzz | `dirb` | Classic directory brute force | no |
+| Web Fuzz | `dirsearch` | Directory/file discovery | no |
+| Web Fuzz | `wfuzz` | Configurable web application fuzzer | no |
+| Fingerprint | `whatweb` | Technology, CMS, and framework detection | yes |
+| Fingerprint | `wafw00f` | WAF detection and identification | yes |
+| Fingerprint | `nikto` | Web server misconfiguration scan | yes |
+| Fingerprint | `httpx` | HTTP probing and tech detection | no |
+| OSINT | `whois` | Domain registration information | yes |
+| OSINT | `theHarvester` | Email, subdomain, IP from public sources | no |
+| Historical | `gau` | Historical URLs from Wayback/Common Crawl | no |
+| Historical | `waybackurls` | Wayback Machine URL discovery | no |
+| Vuln Scan | `nuclei` | Template-based CVE and misconfiguration scan | yes |
+| SMB | `enum4linux` | SMB/CIFS/Windows enumeration | no |
+| SMB | `smbmap` | SMB share enumeration with permissions | no |
+| Crawl | `katana` | JavaScript-rendered web crawling (SPA support) | no |
 
 Install Python dependencies:
 
@@ -93,19 +130,17 @@ pip install -r requirements.txt
 
 # Create the safety marker (required before any scan)
 python run_vapt.py --create-lab-marker
+# or
+python run_recon.py --create-lab-marker
 ```
 
-The lab marker file (`.lab_mode_enabled`) is a safety gate. Without it, all scans are blocked. Re-create it any time:
-
-```bash
-python run_vapt.py --create-lab-marker
-```
+The lab marker file (`.lab_mode_enabled`) is a safety gate. Without it, all scans are blocked.
 
 ---
 
 ## 4. Safety System
 
-The framework enforces a two-layer allowlist before sending any traffic.
+Both scripts enforce the same two-layer allowlist before sending any traffic.
 
 ### 4.1 Lab Marker
 
@@ -117,7 +152,7 @@ python run_vapt.py --create-lab-marker
 
 ### 4.2 URL Allowlist
 
-Every target must appear in `config/safety.yaml` under `web_vapt.allowed_urls`. The engine performs a prefix match — adding `http://192.168.0.102` also covers all paths under that host.
+Every target must appear in `config/safety.yaml` under `web_vapt.allowed_urls`. Adding `http://192.168.0.102` covers all paths under that host.
 
 ```yaml
 # config/safety.yaml
@@ -126,18 +161,12 @@ web_vapt:
     - "http://localhost"
     - "https://localhost"
     - "http://127.0.0.1"
-    - "http://192.168.0.102"        # local DVWA
-    - "http://192.168.0.102/dvwa"
+    - "http://192.168.0.107"
+    - "http://192.168.0.107/dvwa"
     - "https://your-owned-domain.com"
 ```
 
-**Adding a new target:**
-
-1. Open `config/safety.yaml`
-2. Add the URL under `web_vapt.allowed_urls`
-3. Save the file — no restart needed
-
-If you try to scan a target not in the allowlist, the engine exits immediately with:
+If you scan a target not in the allowlist, both scripts exit immediately:
 
 ```
 [BLOCKED] Target 'https://example.com' is not in the web VAPT allowlist
@@ -147,19 +176,35 @@ If you try to scan a target not in the allowlist, the engine exits immediately w
 
 ## 5. Quick Start
 
-### Simplest scan — URL only
+### Web vulnerability scan
 
 ```bash
 python run_vapt.py --target http://192.168.0.102/dvwa/
 ```
 
-### Scan with a Burp Suite captured request
+### Kali recon tools scan
+
+```bash
+python run_recon.py --target http://192.168.0.102
+```
+
+### Specific recon tools only
+
+```bash
+python run_recon.py --target http://192.168.0.102 --tools nmap,subfinder,ffuf
+```
+
+### Scan using a Burp Suite captured request
 
 ```bash
 python run_vapt.py -r burp_request.txt
 ```
 
-The target URL, cookies, session ID, headers, and parameters are all read from the file automatically.
+### List all available recon tools
+
+```bash
+python run_recon.py --list-tools
+```
 
 ### Dry run — confirm config without scanning
 
@@ -169,18 +214,22 @@ python run_vapt.py --target http://192.168.0.102/dvwa/ --dry-run
 
 ---
 
-## 6. Command Reference
+## 6. run_vapt.py — Web Vulnerability Scanner
+
+Runs 38 web vulnerability scan modules (SQLi, XSS, IDOR, LFI, CORS, JWT, SSRF, etc.) against a target. Does **not** run external recon tools — use `run_recon.py` for that.
 
 ```
 python run_vapt.py [OPTIONS]
 ```
+
+**Core options:**
 
 | Option | Short | Default | Description |
 |---|---|---|---|
 | `--target URL` | | — | Target URL to scan |
 | `--request FILE` | `-r` | — | Burp Suite raw request file |
 | `--output DIR` | | `reports/web` | Output directory for reports |
-| `--modules LIST` | | all enabled | Comma-separated module names to run |
+| `--modules LIST` | | all enabled | Comma-separated vuln module names |
 | `--cookie STRING` | | — | Raw `Cookie:` header value |
 | `--username USER` | | — | Username for HTTP Basic Auth |
 | `--password PASS` | | — | Password for HTTP Basic Auth |
@@ -192,17 +241,73 @@ python run_vapt.py [OPTIONS]
 | `--dry-run` | | off | Print resolved config, no scan |
 | `--create-lab-marker` | | — | Create safety marker file and exit |
 
-### Priority rules
+**Priority rules:**
 
 - `--target` takes precedence over the URL inferred from `-r`
 - `--cookie` takes precedence over the `Cookie:` header in the Burp file
 - `--modules` is case-insensitive; spaces around commas are ignored
 
+**Ctrl+C behaviour:** Sets the kill switch — current module finishes, partial results are saved to `reports/web/` immediately.
+
 ---
 
-## 7. Burp Suite Integration
+## 7. run_recon.py — Recon Tools Scanner
 
-The `-r` flag accepts any raw HTTP request file — the same format Burp Suite exports and `sqlmap -r` accepts.
+Runs up to 29 Kali Linux recon tools concurrently against a target. Generates a standalone JSON + Markdown report in `reports/recon/`. Completely independent of the web vuln scanner.
+
+```
+python run_recon.py [OPTIONS]
+```
+
+**Options:**
+
+| Option | Short | Default | Description |
+|---|---|---|---|
+| `--target URL` | | — | Target URL or IP |
+| `--tools LIST` | | default set | Comma-separated recon tool names |
+| `--list-tools` | | — | Print all 29 tools with categories and exit |
+| `--output DIR` | | `reports/recon` | Output directory for reports |
+| `--verbose` | `-v` | off | Enable DEBUG logging |
+| `--create-lab-marker` | | — | Create safety marker file and exit |
+
+**Default tools** (run when `--tools` is omitted, if installed):
+
+```
+nmap, nslookup, dig, subfinder, ffuf, gobuster,
+whatweb, wafw00f, nikto, nuclei, whois
+```
+
+**Examples:**
+
+```bash
+# Run all default tools
+python run_recon.py --target http://192.168.0.102
+
+# Run only specific tools
+python run_recon.py --target http://192.168.0.102 --tools nmap,subfinder,ffuf,gobuster
+
+# DNS and subdomain recon only
+python run_recon.py --target http://192.168.0.102 --tools nslookup,dig,dnsrecon,subfinder
+
+# Port scan + WAF + fingerprint
+python run_recon.py --target http://192.168.0.102 --tools nmap,wafw00f,whatweb
+
+# Save to a custom directory
+python run_recon.py --target http://192.168.0.102 --output reports/recon/pass1
+
+# List all supported tools
+python run_recon.py --list-tools
+```
+
+**Ctrl+C behaviour:** Kills any running subprocess immediately (nmap, ffuf, etc.) and writes a partial report marked `PARTIAL_` before exiting.
+
+**Report location:** `reports/recon/recon_YYYYMMDD_HHMMSS.md` and `.json`
+
+---
+
+## 8. Burp Suite Integration
+
+The `-r` flag (available on `run_vapt.py`) accepts any raw HTTP request file — the same format Burp Suite exports and `sqlmap -r` accepts.
 
 ### How to export from Burp Suite
 
@@ -210,7 +315,7 @@ The `-r` flag accepts any raw HTTP request file — the same format Burp Suite e
 2. Select **Save item** (Proxy history) or copy from Repeater's raw view
 3. Save as a `.txt` file
 
-A valid Burp request file looks like:
+A valid Burp request file:
 
 ```
 POST /dvwa/login.php HTTP/1.1
@@ -237,8 +342,6 @@ username=admin&password=password&Login=Login
 
 ### Scheme auto-detection
 
-The parser infers `http` or `https` from the Host header — no configuration needed:
-
 | Host value | Inferred scheme |
 |---|---|
 | `192.168.x.x`, `10.x.x.x`, `172.16-31.x.x` | `http` |
@@ -257,7 +360,7 @@ python run_vapt.py -r burp_request.txt --target https://192.168.0.102/dvwa/
 ### Combining `-r` with other flags
 
 ```bash
-# Use Burp file for headers/params but override the cookie (e.g. after re-login)
+# Override the cookie after re-logging in
 python run_vapt.py -r burp_request.txt --cookie "PHPSESSID=newtoken123"
 
 # Run only injection modules on the captured request
@@ -269,7 +372,7 @@ python run_vapt.py -r burp_request.txt --verbose
 
 ---
 
-## 8. Authentication Options
+## 9. Authentication Options
 
 ### Option A — Burp Suite file (recommended)
 
@@ -281,7 +384,7 @@ python run_vapt.py -r burp_request.txt
 
 ### Option B — Manual cookie
 
-Paste the `Cookie:` header value directly. Useful when you have a session token but no Burp file.
+Paste the `Cookie:` header value directly.
 
 ```bash
 python run_vapt.py --target http://192.168.0.102/dvwa/ \
@@ -290,8 +393,6 @@ python run_vapt.py --target http://192.168.0.102/dvwa/ \
 
 ### Option C — HTTP Basic Auth
 
-For applications protected by HTTP Basic Authentication (e.g., `.htpasswd`-protected pages).
-
 ```bash
 python run_vapt.py --target http://192.168.0.102/ \
   --username admin --password secret
@@ -299,7 +400,7 @@ python run_vapt.py --target http://192.168.0.102/ \
 
 ### Combining auth methods
 
-Cookie and Basic Auth can be used together. If `-r` is also used, `--cookie` overrides the cookie from the Burp file:
+`--cookie` overrides the cookie from the Burp file:
 
 ```bash
 python run_vapt.py -r burp_request.txt \
@@ -309,9 +410,9 @@ python run_vapt.py -r burp_request.txt \
 
 ---
 
-## 9. Module Selection
+## 10. Module Selection
 
-By default, all 38 modules run. Use `--modules` to run only specific ones — useful for targeted follow-up scans or when you already know the technology stack.
+By default, all 38 modules run. Use `--modules` to run specific ones:
 
 ```bash
 # Run only injection modules
@@ -322,7 +423,7 @@ python run_vapt.py --target http://192.168.0.102/dvwa/ \
 python run_vapt.py --target http://target.com \
   --modules auth,csrf,jwt,jwt_algorithm_confusion
 
-# Run only reconnaissance (no active injection)
+# Run only passive header/config checks (no injection)
 python run_vapt.py --target http://target.com \
   --modules security_headers,tls,cors,sensitive_files,debug_endpoints
 ```
@@ -379,44 +480,34 @@ python run_vapt.py --target http://target.com \
 
 ---
 
-## 10. Configuration Files
+## 11. Configuration Files
 
 ### `config/safety.yaml` — Safety and allowlist
 
-Controls who can be scanned and what is blocked.
-
-**Key settings:**
-
 ```yaml
 web_vapt:
-  allowed_urls:           # Targets permitted for scanning
+  allowed_urls:
     - "http://192.168.0.102"
     - "https://your-domain.com"
-
-  require_lab_marker: true  # Must have .lab_mode_enabled file
-
-sandbox:
-  require_lab_marker: true  # Same gate for all scan types
+  require_lab_marker: true
 
 kill_switch:
-  max_attack_budget: 500         # Max findings before auto-stop
-  max_session_duration_seconds: 7200  # 2 hour hard cutoff
+  max_attack_budget: 500
+  max_session_duration_seconds: 7200
 ```
 
 ### `config/web_vapt.yaml` — Engine behaviour
 
-Controls crawling depth, rate limits, timeouts, payloads, and which modules are enabled.
-
-**Key settings:**
+Controls crawling depth, rate limits, timeouts, payloads, and module settings. Also controls recon tool settings used by `run_recon.py`.
 
 ```yaml
 concurrency:
-  max_parallel_scans: 8      # Modules running at once
-  max_parallel_requests: 5   # Concurrent HTTP requests per module
+  max_parallel_scans: 8
+  max_parallel_requests: 5
 
 rate_limiting:
-  requests_per_second: 10.0  # Token bucket rate
-  burst_size: 20             # Max burst
+  requests_per_second: 10.0
+  burst_size: 20
 
 timeouts:
   http_request_seconds: 15.0
@@ -424,97 +515,99 @@ timeouts:
   tool_execution_seconds: 120
 
 crawl:
-  max_depth: 5               # How deep the crawler follows links
-  max_urls: 250              # Max URLs to crawl
+  max_depth: 5
+  max_urls: 250
 
 modules:
   sqli:
-    enabled: true            # Set to false to permanently disable
+    enabled: true
     max_payloads: 30
   xss:
     enabled: true
     max_payloads: 25
-  # ... all 38 modules have enabled: true/false
+
+tools:
+  nmap:
+    enabled: true
+    port_range: "1-10000"
+    timing_template: "T4"
+  ffuf:
+    enabled: true
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+    threads: 50
+  amass:
+    enabled: false   # disabled by default
 ```
 
-**Disabling a module permanently** (vs using `--modules` for one scan):
+**Disabling a module permanently:**
 
 ```yaml
 modules:
   wasm_memory_corruption:
-    enabled: false   # Never runs even without --modules filter
+    enabled: false
 ```
 
 ---
 
-## 11. Scan Phases
+## 12. Scan Phases
 
-### Phase 1 — Attack Surface Discovery
+### Phase 1 — Attack Surface Discovery (run_vapt.py only)
 
-The engine crawls the target URL using a built-in HTML parser that extracts:
+Crawls the target URL and extracts:
 - All `<a href>` links within the same domain
-- HTML `<form>` elements with their inputs, method, and action
+- HTML `<form>` elements with inputs, method, and action
 - URL query parameters
-- `<script src>` JavaScript files
+- JavaScript files (`<script src>`)
 - WebAssembly (`.wasm`) references
 - Import maps, service workers
 - WebSocket endpoints detected in JavaScript source
 - GraphQL endpoints by path pattern
 
-If `katana` is installed, a second deeper crawl runs with JavaScript execution enabled (`-jc` flag), which discovers content in React/Vue/Angular SPAs.
+If `katana` is installed, a second deeper crawl runs with JavaScript execution enabled for React/Vue/Angular SPAs.
 
 **When attack surface is minimal (1 URL, 0 forms):**
 
-The most common cause is a JavaScript-rendered SPA where the raw HTML contains only a `<div id="root">` and a JS bundle. In this case:
-- Install `katana` for JS-rendered crawling
-- Use `-r` with a Burp file to manually inject the endpoint and parameters
+1. **JavaScript SPA** — Install `katana` for JS-rendered crawling
+2. **Login wall** — Use `-r` with a Burp file or `--cookie` to authenticate
 
-### Phase 1b — Burp Seed Merge
+### Phase 1b — Burp Seed Merge (run_vapt.py only)
 
-If `-r` was used, the parsed request data is merged into the attack surface:
+If `-r` was used, parsed request data is merged into the attack surface:
 - Target URL added to `surface.urls`
 - Query and body parameters merged into `surface.parameters`
 - A synthetic `<form>` is created from all parameters so injection modules test them
-- Browser headers (User-Agent, Accept, Referer) are forwarded on all requests
-- Cookie is injected into the HTTP client for all subsequent requests
+- Browser headers forwarded on all requests
+- Cookie injected into the HTTP client
 
-### Phase 2 — Scan Modules
+### Phase 2 — Scan Modules (run_vapt.py only)
 
-All enabled modules run concurrently. The semaphore limits to 8 at a time. Each module receives the full attack surface and iterates over URLs, forms, and parameters independently.
+All enabled modules run concurrently (max 8 at a time). Each module receives the full attack surface and iterates over URLs, forms, and parameters independently.
 
-Modules that need parameters (SQLi, XSS, LFI, IDOR, etc.) will complete instantly if no forms/parameters were discovered — they have nothing to test. This is normal behaviour and is why `-r` or a crawlable target with forms is important for injection testing.
+Modules that need parameters (SQLi, XSS, LFI, etc.) complete instantly if no forms/params were found — they have nothing to test. This is why `-r` or a crawlable target with forms is important for injection testing.
 
 Modules that probe fixed paths (sensitive_files, debug_endpoints, security_headers, cors, tls) always produce results regardless of crawl depth.
 
-### Phase 3 — External Tools
+### Phase 3 — Recon Tools (run_recon.py only)
 
-If tools are installed in PATH, the engine runs them automatically:
-- `nuclei` — template-based vulnerability scanning
-- `nmap` — port and service scan
-- `nikto` — web server misconfiguration
-- `whatweb` — technology detection
-- `subfinder` — subdomain enumeration
-- `gau` — historical URL discovery
+`run_recon.py` runs all selected Kali tools concurrently via `ReconEngine`. Each tool executes as a subprocess — never with `shell=True`. Tools not found in PATH are silently skipped.
 
-If a tool is not found, it is silently skipped and noted in the report under **External Tool Outputs**.
+> **Note:** `run_vapt.py` does **not** run external recon tools. Use `run_recon.py` separately.
 
-### Phase 4 — Deduplication and Filtering
+### Phase 4 — Deduplication (run_vapt.py only)
 
-Findings below the minimum confidence threshold (default: 0.2 = 20%) are dropped. Duplicate findings for the same endpoint + parameter + category are merged.
+Findings below the minimum confidence threshold (default: 20%) are dropped. Duplicates for the same endpoint + parameter + category are merged.
 
-### Phase 5 — Validation Agent
+### Phase 5 — Validation Agent (run_vapt.py only)
 
-Each remaining finding is re-validated by the `WebValidationAgent`. It re-sends the payload and compares the response against a baseline to confirm the anomaly is real. Validated findings are marked **CONFIRMED**; unconfirmed ones are marked **POTENTIAL — MANUAL VALIDATION REQUIRED**.
+Each finding is re-validated by replaying the payload and comparing the response against a baseline. Validated findings are marked **CONFIRMED**; others are **POTENTIAL — MANUAL VALIDATION REQUIRED**.
 
-### Phase 6 — LLM Agent (optional)
+### Phase 6 — LLM Agent (run_vapt.py, optional)
 
-When `--llm` is used, a local Ollama model analyses all findings and generates:
+When `--llm` is used, a local Ollama model analyses findings and generates:
 - Executive brief
 - Risk rating
 - Attack chain narratives
 - Prioritised remediation advice
-
-Requires Ollama running locally. Default model: `llama3`.
 
 ```bash
 python run_vapt.py --target http://192.168.0.102/dvwa/ --llm --model llama3
@@ -522,16 +615,27 @@ python run_vapt.py --target http://192.168.0.102/dvwa/ --llm --model llama3
 
 ---
 
-## 12. Understanding Reports
+## 13. Understanding Reports
 
-Reports are written to `reports/web/` (or the directory set with `--output`) in both Markdown (`.md`) and JSON (`.json`) format.
+### Web VAPT reports (`run_vapt.py`)
 
-### Report structure
+Written to `reports/web/` in both formats:
 
 ```
 reports/web/
-  web_vapt_YYYYMMDD_HHMMSS.md    ← Human-readable report
-  web_vapt_YYYYMMDD_HHMMSS.json  ← Machine-readable findings
+  web_vapt_YYYYMMDD_HHMMSS.md    ← Human-readable
+  web_vapt_YYYYMMDD_HHMMSS.json  ← Machine-readable
+```
+
+### Recon reports (`run_recon.py`)
+
+Written to `reports/recon/` in both formats:
+
+```
+reports/recon/
+  recon_YYYYMMDD_HHMMSS.md       ← Human-readable
+  recon_YYYYMMDD_HHMMSS.json     ← Machine-readable
+  recon_PARTIAL_YYYYMMDD_HHMMSS.md   ← Written if Ctrl+C was pressed
 ```
 
 ### Severity levels
@@ -544,38 +648,76 @@ reports/web/
 | LOW | 1.0 – 3.9 | Limited impact or hard to exploit |
 | INFO | 0.0 | Informational, no direct impact |
 
-### Validation status
+### Validation status (web VAPT only)
 
 | Status | Meaning |
 |---|---|
 | **CONFIRMED** | Evidence re-validated; anomaly reproduced |
-| **POTENTIAL — MANUAL VALIDATION REQUIRED** | Engine detected a signal but could not definitively confirm |
+| **POTENTIAL — MANUAL VALIDATION REQUIRED** | Signal detected but not definitively confirmed |
 
-### Risk score
+### Risk score (web VAPT only)
 
-The overall risk score (0–100) is calculated from the weighted sum of findings by severity. Use it as a quick health indicator across scans.
+The overall risk score (0–100) is a weighted sum of findings by severity.
 
-### Reading a finding
+| Score range | Label |
+|---|---|
+| 80 – 100 | CRITICAL |
+| 60 – 79 | HIGH |
+| 40 – 59 | MEDIUM |
+| 20 – 39 | LOW |
+| 0 – 19 | INFORMATIONAL |
 
-Each finding contains:
-- **Finding ID** — unique identifier (e.g., `WEB-13043EA5`)
-- **Severity** and **CVSS score**
-- **Confidence** — engine's certainty (0–100%)
-- **Validation status** — CONFIRMED or POTENTIAL
-- **Endpoint** — the URL that triggered the finding
-- **Parameter** — the specific parameter or header
-- **Description** — what was found
-- **Comparison Result** — baseline vs attack response
-- **Evidence** — raw response excerpt
-- **Exact Reproduction Steps** — how to manually verify
-- **Remediation** — how to fix it
-- **References** — OWASP / CWE / RFC links
+### Web VAPT terminal summary
+
+```
+==========================================================
+  WEB VAPT COMPLETE
+==========================================================
+  Report ID   : web_vapt_20260612_140312
+  Target      : http://192.168.0.102/dvwa/
+  Duration    : 45s
+  Risk Score  : 72.5/100  [HIGH]
+  Findings    : 18
+    CRITICAL  : 2
+    HIGH      : 4
+    MEDIUM    : 7
+    LOW       : 3
+    INFO      : 2
+
+  JSON Report : reports/web/web_vapt_20260612_140312.json
+  MD Report   : reports/web/web_vapt_20260612_140312.md
+==========================================================
+```
+
+### Recon terminal summary
+
+```
+==========================================================
+  RECON COMPLETE
+==========================================================
+  Report ID   : recon_20260612_140312
+  Target      : http://192.168.0.102
+  Duration    : 62s
+  Tools run   : 8
+    dig, ffuf, gobuster, nikto, nmap, nslookup, whatweb, whois
+
+  Open Ports  : 80/tcp (http), 443/tcp (https), 3306/tcp (mysql)
+  Subdomains  : 3  (dev.target.lab, api.target.lab, ...)
+  Web Paths   : 47 discovered
+  Tech Stack  : Apache, PHP, MySQL, WordPress
+  WAF         : ModSecurity
+  DNS         : A(2), MX(1), NS(3), TXT(4)
+
+  JSON Report : reports/recon/recon_20260612_140312.json
+  MD Report   : reports/recon/recon_20260612_140312.md
+==========================================================
+```
 
 ---
 
-## 13. Scan Modules Reference
+## 14. Scan Modules Reference
 
-See [Section 9 — Module Selection](#9-module-selection) for the full module name list.
+See [Section 10 — Module Selection](#10-module-selection) for the full module name list.
 
 ### How scan modules use the attack surface
 
@@ -591,7 +733,7 @@ See [Section 9 — Module Selection](#9-module-selection) for the full module na
 
 ---
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
 ### `[BLOCKED] Target is not in the web VAPT allowlist`
 
@@ -609,6 +751,8 @@ Run once:
 
 ```bash
 python run_vapt.py --create-lab-marker
+# or
+python run_recon.py --create-lab-marker
 ```
 
 ### `Attack surface: 1 URLs, 0 forms, 0 params`
@@ -617,26 +761,39 @@ The crawler found nothing to inject. Causes:
 
 1. **JavaScript SPA** — Install `katana` for JS-rendered crawling
 2. **Login wall** — Use `-r` with a Burp file or `--cookie` to authenticate
-3. **Request blocked by WAF/Cloudflare** — Add `--verbose` to see the GET error; try with a real browser User-Agent via `-r`
-4. **Target unreachable** — Add `--verbose` and check for `GET ... failed:` in output
+3. **Request blocked by WAF** — Add `--verbose` to see GET errors
+4. **Target unreachable** — Add `--verbose` and check for `GET ... failed:`
 
-### Target auto-selects wrong scheme (http vs https)
-
-Use `--target` to force the scheme:
+### Target auto-selects wrong scheme
 
 ```bash
 python run_vapt.py -r burp.txt --target http://192.168.0.102/dvwa/
 ```
 
-Or use the Burp file — scheme is auto-inferred from the host (private IPs → http).
+### Recon tool shows as `Skipped` in the summary
 
-### Scan appears to hang after attack surface discovery
+The binary was not found in PATH. Install it:
 
-The scan is running Phase 2 (30+ modules) silently. With 0 forms/params, most modules complete instantly but `sensitive_files` and `debug_endpoints` still send ~200 probes. At 10 req/s this takes ~20 seconds. Enable `--verbose` to see per-request activity.
+```bash
+# Kali Linux (apt)
+sudo apt install nmap subfinder ffuf gobuster dnsrecon wafw00f nikto whatweb whois
 
-### External tools show `not found in PATH`
+# Go tools
+go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install github.com/ffuf/ffuf/v2@latest
+go install github.com/OJ/gobuster/v3@latest
+go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+go install github.com/projectdiscovery/katana/cmd/katana@latest
+```
 
-Install the tools and ensure they are in your system PATH. They are optional — the scan runs fully without them.
+### Ctrl+C — report not generated
+
+Both scripts use a kill switch pattern. When Ctrl+C is pressed:
+1. Running subprocesses (nmap, ffuf, etc.) are killed within 1–2 seconds
+2. Partial results collected so far are written to a report immediately
+3. The report filename is prefixed with `PARTIAL_` for recon reports
+
+If no report is written, ensure you have write permission to the output directory.
 
 ### `Cannot import WebVAPTEngine` on startup
 
@@ -644,18 +801,39 @@ Install the tools and ensure they are in your system PATH. They are optional —
 pip install -r requirements.txt
 ```
 
+### nmap returns no results
+
+nmap requires root privileges for OS detection and SYN scans. Run with `sudo` on Linux, or disable OS detection in config:
+
+```yaml
+tools:
+  nmap:
+    os_detection: false
+    port_range: "80,443,8080,8443"
+```
+
+### ffuf / gobuster find nothing
+
+The default wordlists may not be installed:
+
+```bash
+ls /usr/share/seclists/Discovery/Web-Content/common.txt
+# If missing:
+sudo apt install seclists
+```
+
 ---
 
-## 15. Workflow Examples
+## 16. Workflow Examples
 
-### Example 1 — Quick recon (no authentication)
+### Example 1 — Quick passive check (no injection)
 
 ```bash
 python run_vapt.py --target https://example.com \
   --modules security_headers,tls,cors,sensitive_files,debug_endpoints
 ```
 
-Runs in under 30 seconds. Good for a first-pass check of any public site.
+Runs in under 30 seconds. Good for a first-pass check of headers and exposed files.
 
 ---
 
@@ -664,23 +842,19 @@ Runs in under 30 seconds. Good for a first-pass check of any public site.
 1. Open DVWA in your browser with Burp Suite proxying traffic
 2. Navigate to any DVWA page while authenticated
 3. In Burp Proxy history, right-click the request → **Save item** → `burp_dvwa.txt`
-4. Run the scan:
+4. Run:
 
 ```bash
 python run_vapt.py -r burp_dvwa.txt
 ```
 
-The scan now uses your session cookie and tests all DVWA parameters for injection.
-
 ---
 
-### Example 3 — Targeted injection test on a known endpoint
-
-You know the login form is vulnerable; scan only injection modules:
+### Example 3 — Targeted injection test
 
 ```bash
 python run_vapt.py -r burp_login.txt \
-  --modules sqli,xss,command_injection,lfi,ssti
+  --modules sqli,xss,command_injection,lfi
 ```
 
 ---
@@ -688,36 +862,88 @@ python run_vapt.py -r burp_login.txt \
 ### Example 4 — Full scan with LLM analysis
 
 ```bash
-# Start Ollama in another terminal
-ollama serve
+ollama serve   # in another terminal
 
-# Run full scan with AI analysis
 python run_vapt.py --target http://192.168.0.102/dvwa/ \
   --cookie "security=low; PHPSESSID=abc123" \
   --llm --model llama3 --iter 15
 ```
 
-The LLM agent produces an executive brief and attack chain analysis in the report.
-
 ---
 
-### Example 5 — Iterative scanning workflow
+### Example 5 — Recon first, then vuln scan
 
 ```bash
-# 1. First pass — full discovery
-python run_vapt.py -r burp.txt --output reports/pass1
+# Step 1 — run all default recon tools, save separately
+python run_recon.py --target http://192.168.0.102 --output reports/recon/pass1
 
-# 2. Review report, then re-run only confirmed vulnerable areas
-python run_vapt.py -r burp.txt --modules sqli,lfi \
-  --output reports/pass2 --verbose
-
-# 3. Final report with LLM analysis
-python run_vapt.py -r burp.txt --llm --output reports/final
+# Step 2 — review the recon report, then run vuln scan
+python run_vapt.py -r burp_dvwa.txt --output reports/web/pass1
 ```
 
 ---
 
-### Example 6 — HTTP Basic Auth target
+### Example 6 — Targeted recon (DNS and subdomains only)
+
+```bash
+python run_recon.py --target http://target.lab \
+  --tools nslookup,dig,dnsrecon,subfinder
+```
+
+---
+
+### Example 7 — Port scan + WAF + fingerprint
+
+```bash
+python run_recon.py --target http://192.168.0.102 \
+  --tools nmap,wafw00f,whatweb
+```
+
+---
+
+### Example 8 — Directory discovery with multiple fuzzers
+
+```bash
+python run_recon.py --target http://192.168.0.102/dvwa/ \
+  --tools ffuf,gobuster,nikto
+```
+
+---
+
+### Example 9 — OSINT and historical URLs
+
+```bash
+# Enable OSINT tools in config/web_vapt.yaml first:
+#   theharvester.enabled: true
+#   gau.enabled: true
+#   waybackurls.enabled: true
+
+python run_recon.py --target http://target.com \
+  --tools theharvester,whois,gau,waybackurls,subfinder
+```
+
+---
+
+### Example 10 — Iterative scanning workflow
+
+```bash
+# 1. Recon pass
+python run_recon.py --target http://192.168.0.102 --output reports/recon/pass1
+
+# 2. Full vuln scan using Burp session
+python run_vapt.py -r burp.txt --output reports/web/pass1
+
+# 3. Focused follow-up on confirmed injectable params
+python run_vapt.py -r burp.txt --modules sqli,lfi \
+  --output reports/web/pass2 --verbose
+
+# 4. Final report with LLM analysis
+python run_vapt.py -r burp.txt --llm --output reports/web/final
+```
+
+---
+
+### Example 11 — HTTP Basic Auth target
 
 ```bash
 python run_vapt.py --target http://192.168.0.102/protected/ \
@@ -727,38 +953,336 @@ python run_vapt.py --target http://192.168.0.102/protected/ \
 
 ---
 
-## Appendix — Output Summary Fields
+## 17. Recon Tools Reference
 
-When a scan completes, the terminal prints:
+### 17.1 Overview
 
-```
-==========================================================
-  WEB VAPT COMPLETE
-==========================================================
-  Report ID   : WEB-xxxxxxxx
-  Target      : http://192.168.0.102/dvwa/
-  Duration    : 45s
-  Risk Score  : 72.5/100  [HIGH]
-  Findings    : 18
-    CRITICAL  : 2
-    HIGH      : 4
-    MEDIUM    : 7
-    LOW       : 3
-    INFO      : 2
-  JSON Report : reports/web/web_vapt_20260520_010203.json
-  MD Report   : reports/web/web_vapt_20260520_010203.md
-==========================================================
+The `ReconEngine` (`modules/recon_tools.py`) integrates 29 Kali Linux reconnaissance tools. Run it via `run_recon.py`.
+
+```bash
+# List all tools with categories and default-enabled status
+python run_recon.py --list-tools
 ```
 
-**Risk labels:**
+Output:
 
-| Score range | Label |
+```
+  Supported Recon Tools
+  ──────────────────────────────────────────────────────
+
+  [Network Scanning]
+    masscan
+    nmap               (default)
+
+  [DNS Reconnaissance]
+    dig                (default)
+    dnsenum
+    dnsrecon           (default)
+    dnsx
+    fierce
+    nslookup           (default)
+
+  [Subdomain Enumeration]
+    amass
+    assetfinder
+    subfinder          (default)
+
+  [Web Fuzzing / Dir Brute Force]
+    dirb
+    dirsearch
+    feroxbuster
+    ffuf               (default)
+    gobuster           (default)
+    wfuzz
+
+  [Web Fingerprinting]
+    httpx
+    nikto              (default)
+    wafw00f            (default)
+    whatweb            (default)
+
+  [OSINT]
+    theharvester
+    whois              (default)
+
+  [Historical URLs]
+    gau
+    waybackurls
+
+  [Vulnerability Scanning]
+    nuclei             (default)
+
+  [SMB / Windows Recon]
+    enum4linux
+    smbmap
+
+  [Web Crawling]
+    katana
+```
+
+---
+
+### 17.2 Tool Details
+
+#### nmap — Network Scanning
+
+Comprehensive port scan with service/version detection, OS detection, and NSE scripts.
+
+**NSE scripts run by default:**
+`http-enum`, `http-headers`, `http-methods`, `http-auth`, `http-title`, `http-server-header`, `http-robots.txt`, `http-git`, `http-shellshock`, `ssl-enum-ciphers`, `ssl-heartbleed`, `ssl-poodle`, `ftp-anon`, `ssh-auth-methods`, `smb-vuln-ms17-010`, `smb-security-mode`
+
+**Config (`config/web_vapt.yaml`):**
+
+```yaml
+tools:
+  nmap:
+    enabled: true
+    port_range: "1-10000"        # use "1-65535" for full sweep
+    timing_template: "T4"        # T1 (slow) to T5 (insane)
+    os_detection: true
+```
+
+---
+
+#### nslookup — DNS Lookup
+
+Queries A, AAAA, MX, NS, TXT, CNAME, SOA. Works on Linux and Windows without extra installation.
+
+---
+
+#### dig — DNS Records + Zone Transfer
+
+Queries all record types with full answer sections. Attempts AXFR zone transfer (a successful transfer is a HIGH finding).
+
+---
+
+#### dnsrecon — DNS Reconnaissance
+
+Standard enumeration, SRV discovery, brute-force subdomain enum, and AXFR attempt.
+
+```yaml
+tools:
+  dnsrecon:
+    enabled: true
+    scan_type: "std,brt,srv,axfr"
+```
+
+---
+
+#### subfinder — Subdomain Enumeration
+
+Passive subdomain discovery from crtsh, hackertarget, AlienVault, VirusTotal, dnsdumpster, and more.
+
+```yaml
+tools:
+  subfinder:
+    enabled: true
+    recursive: true
+```
+
+---
+
+#### ffuf — Fast Web Fuzzer
+
+Appends `/FUZZ` to the target and fuzzes with the configured wordlist.
+
+```yaml
+tools:
+  ffuf:
+    enabled: true
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+    threads: 50
+    matcher_status: "200,204,301,302,307,401,403,405"
+```
+
+---
+
+#### gobuster — Directory, DNS, and VHost Brute Force
+
+Runs dir mode (path brute force), dns mode (subdomain brute force), and vhost mode automatically.
+
+```yaml
+tools:
+  gobuster:
+    enabled: true
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+    status_codes: "200,204,301,302,307,401,403"
+    extensions: "php,html,txt,js,json,xml,bak,zip"
+    threads: 30
+```
+
+---
+
+#### wafw00f — WAF Detection
+
+Identifies WAF product (Cloudflare, ModSecurity, Akamai, etc.) or reports None.
+
+---
+
+#### whatweb — Technology Fingerprinting
+
+Detects CMS platforms (WordPress, Drupal, Joomla), frameworks, server software, and JavaScript libraries.
+
+---
+
+#### nikto — Web Server Scanner
+
+Scans for 6,700+ potentially dangerous files, outdated software, and misconfigurations.
+
+---
+
+#### nuclei — Template-Based Vulnerability Scanner
+
+Runs community templates for CVEs, misconfigurations, exposed panels, and secrets.
+
+```yaml
+tools:
+  nuclei:
+    enabled: true
+    templates:
+      - "cves/"
+      - "misconfiguration/"
+      - "vulnerabilities/"
+      - "exposures/"
+    severity_filter: "low,medium,high,critical"
+    rate_limit: 150
+    concurrency: 50
+```
+
+---
+
+#### whois — Domain Registration Info
+
+Queries registrar, registrant, creation/expiry dates, nameservers, and contact emails.
+
+---
+
+#### theHarvester — OSINT Gathering
+
+Harvests emails, subdomains, and IPs from Google, Bing, DuckDuckGo, LinkedIn, and HackerTarget.
+
+```yaml
+tools:
+  theharvester:
+    enabled: true
+    sources: "google,bing,duckduckgo,linkedin,hackertarget"
+    limit: 500
+```
+
+---
+
+#### amass — Comprehensive Subdomain Enumeration
+
+Deeper subdomain enumeration than subfinder. Heavier — recommended for thorough engagements.
+
+```yaml
+tools:
+  amass:
+    enabled: true
+    mode: "passive"    # passive | active
+```
+
+---
+
+#### feroxbuster — Recursive Directory Fuzzing
+
+Recursively follows every found directory. Generates more traffic than ffuf/gobuster.
+
+```yaml
+tools:
+  feroxbuster:
+    enabled: true
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt"
+    threads: 50
+```
+
+---
+
+#### gau / waybackurls — Historical URL Discovery
+
+**gau** queries Wayback Machine, Common Crawl, and OTX. **waybackurls** queries Wayback Machine directly. Finds forgotten endpoints, old admin panels, and leaked files.
+
+```yaml
+tools:
+  gau:
+    enabled: true
+  waybackurls:
+    enabled: true
+```
+
+---
+
+#### enum4linux / smbmap — SMB Recon
+
+`enum4linux` enumerates SMB shares, users, groups, and domain info. `smbmap` lists share permissions. Only useful when port 445 is open.
+
+```yaml
+tools:
+  enum4linux:
+    enabled: true
+  smbmap:
+    enabled: true
+```
+
+---
+
+### 17.3 Wordlists
+
+Most fuzzing tools require wordlists from the **SecLists** collection:
+
+```bash
+sudo apt install seclists
+```
+
+Default wordlist paths:
+
+| Tool | Default wordlist |
 |---|---|
-| 80 – 100 | CRITICAL |
-| 60 – 79 | HIGH |
-| 40 – 59 | MEDIUM |
-| 20 – 39 | LOW |
-| 0 – 19 | INFORMATIONAL |
+| ffuf | `/usr/share/seclists/Discovery/Web-Content/common.txt` |
+| gobuster dir | `/usr/share/seclists/Discovery/Web-Content/common.txt` |
+| gobuster dns | `/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt` |
+| feroxbuster | `/usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt` |
+| dirb | `/usr/share/dirb/wordlists/common.txt` |
+| wfuzz | `/usr/share/seclists/Discovery/Web-Content/common.txt` |
+
+Override in `config/web_vapt.yaml` under the relevant tool key.
+
+---
+
+### 17.4 Recon Tool Configuration Quick Reference
+
+```yaml
+# Enable a non-default tool
+tools:
+  amass:
+    enabled: true
+
+# Disable a default tool
+tools:
+  nikto:
+    enabled: false
+
+# Faster nmap (common ports only)
+tools:
+  nmap:
+    port_range: "21,22,80,443,445,3306,8080,8443"
+    timing_template: "T3"
+    os_detection: false
+
+# Bigger ffuf wordlist
+tools:
+  ffuf:
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/big.txt"
+    threads: 100
+    matcher_status: "200,301,302,403"
+
+# Add OSINT sources
+tools:
+  theharvester:
+    enabled: true
+    sources: "google,bing,duckduckgo,linkedin,hackertarget,crtsh"
+    limit: 1000
+```
 
 ---
 

@@ -450,140 +450,221 @@ crawl:
     - "*/images/*"
     - "*/fonts/*"
 
-# ── External Tools ────────────────────────────────────────────────────────────
+# ── External / Recon Tools ────────────────────────────────────────────────────
+# All tools are executed via asyncio subprocess (no shell=True).
+# Set enabled: false to skip a tool entirely.
+# Tools not found in PATH are skipped automatically.
 tools:
-  httpx:
-    enabled: true
-    path: httpx
-    flags:
-      [
-        "-silent",
-        "-follow-redirects",
-        "-title",
-        "-tech-detect",
-        "-status-code",
-        "-content-length",
-      ]
-    probe_methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
-    timeout: 10
 
-  nuclei:
-    enabled: true
-    path: nuclei
-    templates: ["cves/", "misconfiguration/", "vulnerabilities/", "exposures/"]
-    severity_filter: "low,medium,high,critical"
-    exclude_severity: "info"
-    rate_limit: 150
-    concurrency: 50
-    flags: ["-silent", "-j", "-stats", "-json-export"]
-
-  nikto:
-    enabled: true
-    path: nikto
-    flags: ["-nointeractive", "-Tuning", "123456789abc", "-Plugins", "@@ALL"]
-    max_time_per_host: 300
-
+  # ── Network Scanning ──────────────────────────────────────────────────────
   nmap:
     enabled: true
     path: nmap
-    port_range: "1-10000"
+    port_range: "1-10000"            # ports to scan (use "1-65535" for full scan)
     service_detection: true
     os_detection: true
+    timing_template: "T4"            # T1=sneaky … T5=insane
     script_scan:
-      [
-        "http-enum",
-        "http-headers",
-        "http-methods",
-        "http-title",
-        "http-server-header",
-      ]
-    timing_template: "T4"
-    flags: ["-sV", "-sC", "-O", "--open"]
+      - http-enum
+      - http-headers
+      - http-methods
+      - http-auth
+      - http-title
+      - http-server-header
+      - http-robots.txt
+      - http-git
+      - http-shellshock
+      - http-userdir-enum
+      - ssl-enum-ciphers
+      - ssl-heartbleed
+      - ssl-poodle
+      - ftp-anon
+      - ftp-bounce
+      - ssh-auth-methods
+      - smb-vuln-ms17-010
+      - smb-security-mode
 
-  katana:
-    enabled: true
-    path: katana
-    flags: ["-silent", "-jc", "-kf", "all", "-d", "5", "-aff", "jsonl"]
-    headless: false
+  masscan:
+    enabled: false                   # fast port scan — set true for full-range sweep
+    path: masscan
+    port_range: "1-65535"
+    rate: 1000                       # packets per second (lower = stealthier)
 
+  # ── DNS Reconnaissance ────────────────────────────────────────────────────
+  nslookup:
+    enabled: true                    # built-in on Linux/Windows — queries A,AAAA,MX,NS,TXT,CNAME,SOA
+    path: nslookup
+
+  dig:
+    enabled: true                    # detailed DNS records + zone transfer attempt (AXFR)
+    path: dig
+
+  dnsrecon:
+    enabled: true                    # comprehensive DNS enum: std, SRV, brute, AXFR
+    path: dnsrecon
+    scan_type: "std,brt,srv,axfr"
+
+  dnsx:
+    enabled: false                   # fast multi-type DNS resolver (projectdiscovery)
+    path: dnsx
+
+  fierce:
+    enabled: false                   # DNS brute force + zone walk
+    path: fierce
+
+  dnsenum:
+    enabled: false                   # DNS enumeration with subdomain brute force
+    path: dnsenum
+
+  # ── Subdomain Enumeration ─────────────────────────────────────────────────
   subfinder:
     enabled: true
     path: subfinder
-    sources:
-      [
-        "alienvault",
-        "anubis",
-        "certspotter",
-        "crtsh",
-        "dnsdumpster",
-        "hackertarget",
-        "rapiddns",
-        "shodan",
-        "virustotal",
-        "waybackarchive",
-      ]
     recursive: true
+    sources:
+      - alienvault
+      - anubis
+      - certspotter
+      - crtsh
+      - dnsdumpster
+      - hackertarget
+      - rapiddns
+      - virustotal
+      - waybackarchive
 
-  gau:
+  amass:
+    enabled: false                   # heavy — passive mode recommended for lab use
+    path: amass
+    mode: "passive"                  # passive | active
+    config: "/etc/amass/config.ini"
+
+  assetfinder:
+    enabled: false                   # quick subdomain lookup via tomnomnom/assetfinder
+    path: assetfinder
+
+  # ── Web Fuzzing / Directory Brute Force ───────────────────────────────────
+  ffuf:
     enabled: true
-    path: gau
-    flags:
-      [
-        "--subs",
-        "--blacklist",
-        "png,jpg,gif,jpeg,css,woff,woff2,ttf,eot,svg,ico",
-      ]
+    path: ffuf
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+    threads: 50
+    matcher_status: "200,204,301,302,307,401,403,405"
 
-  whatweb:
+  gobuster:
     enabled: true
-    path: whatweb
-    aggression_level: 3
-    flags: ["--color=never", "--quiet"]
+    path: gobuster
+    # dir mode
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+    status_codes: "200,204,301,302,307,401,403"
+    extensions: "php,html,txt,js,json,xml,bak,zip"
+    threads: 30
+    # dns mode
+    dns_wordlist: "/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt"
 
-  testssl:
-    enabled: true
-    path: testssl.sh
-    flags: ["--color=0", "--quiet", "--warnings=off"]
-    severity: "medium"
-
-  # ── Additional 2026 Tools ─────────────────────────────────
   feroxbuster:
-    enabled: true
+    enabled: false                   # recursive fuzzer — can generate a lot of traffic
     path: feroxbuster
     wordlist: "/usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt"
     threads: 50
     status_codes: "200,204,301,302,307,401,403,405,500"
 
-  ffuf:
-    enabled: true
-    path: ffuf
-    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
-    threads: 100
-    matcher_status: "200,204,301,302,307,401,403,405,500"
+  dirb:
+    enabled: false
+    path: dirb
+    wordlist: "/usr/share/dirb/wordlists/common.txt"
 
-  amass:
+  dirsearch:
+    enabled: false
+    path: dirsearch
+
+  wfuzz:
+    enabled: false
+    path: wfuzz
+    wordlist: "/usr/share/seclists/Discovery/Web-Content/common.txt"
+
+  # ── Web Fingerprinting ────────────────────────────────────────────────────
+  whatweb:
     enabled: true
-    path: amass
-    config: "/etc/amass/config.ini"
-    mode: "passive"
+    path: whatweb
+    aggression_level: 3
+
+  wafw00f:
+    enabled: true                    # WAF detection and identification
+    path: wafw00f
+
+  nikto:
+    enabled: true
+    path: nikto
+    flags: ["-nointeractive", "-Tuning", "123456789abc"]
+    max_time_per_host: 300
+
+  httpx:
+    enabled: false                   # projectdiscovery HTTP prober
+    path: httpx
+    flags:
+      - "-silent"
+      - "-follow-redirects"
+      - "-title"
+      - "-tech-detect"
+      - "-status-code"
+      - "-content-length"
+      - "-web-server"
+      - "-json"
+
+  # ── OSINT ─────────────────────────────────────────────────────────────────
+  theharvester:
+    enabled: false                   # email/subdomain/IP OSINT from public sources
+    path: theHarvester
+    sources: "google,bing,duckduckgo,linkedin,hackertarget"
+    limit: 500
+
+  whois:
+    enabled: true                    # domain registration info
+    path: whois
+
+  # ── Historical URLs ───────────────────────────────────────────────────────
+  gau:
+    enabled: false                   # getallurls — Wayback + Common Crawl + OTX
+    path: gau
 
   waybackurls:
-    enabled: true
+    enabled: false                   # Wayback Machine URL discovery
     path: waybackurls
 
-  subjack:
+  # ── Vulnerability Scanning ────────────────────────────────────────────────
+  nuclei:
     enabled: true
-    path: subjack
-    wordlist: "/usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt"
-    timeout: 10
-    ssl: false
-    all: true
+    path: nuclei
+    templates:
+      - "cves/"
+      - "misconfiguration/"
+      - "vulnerabilities/"
+      - "exposures/"
+    severity_filter: "low,medium,high,critical"
+    rate_limit: 150
+    concurrency: 50
 
-  gotator:
-    enabled: true
-    path: gotator
-    depth: 2
-    numbers: true
+  # ── SMB / Windows Recon ───────────────────────────────────────────────────
+  enum4linux:
+    enabled: false                   # SMB/CIFS enumeration — only relevant if port 445 open
+    path: enum4linux
+
+  smbmap:
+    enabled: false                   # SMB share enumeration with permissions
+    path: smbmap
+
+  # ── Web Crawling ──────────────────────────────────────────────────────────
+  katana:
+    enabled: false                   # JS-aware web crawler (projectdiscovery)
+    path: katana
+    depth: 3
+
+  # ── TLS Analysis ──────────────────────────────────────────────────────────
+  testssl:
+    enabled: false
+    path: testssl.sh
+    flags: ["--color=0", "--quiet", "--warnings=off"]
+    severity: "medium"
 
 # ── Payload Files ─────────────────────────────────────────────────────────────
 payloads:

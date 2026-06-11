@@ -860,152 +860,184 @@ class WebVAPTEngine:
         started_at   = time.time()
         tool_outputs: dict[str, Any] = {}
         self._advanced_module_findings = 0
+        all_findings: list[WebFinding] = []
+        surface: AttackSurface | None = None
+        llm_result = None
 
         logger.info(
             "=== WEB VAPT SESSION %s START | target=%s ===",
             self._session_id, target_url,
         )
 
-        # ── Phase 1: Attack surface discovery ─────────────────────────────
-        surface = await self.discover_attack_surface(target_url)
-
-        # ── Phase 1b: Merge Burp request seed (if provided) ───────────────
-        if self._burp_seed is not None:
-            self._merge_burp_seed(surface)
-
-        logger.info(
-            "Attack surface: %d URLs, %d forms, %d parameters, %d JS, %d WASM",
-            len(surface.urls), len(surface.forms),
-            sum(len(v) for v in surface.parameters.values()),
-            len(surface.js_files), len(surface.wasm_files),
-        )
-
-        # ── Phase 2: Run all enabled scan modules concurrently ────────────
-        scan_tasks: dict[str, asyncio.Task[list[WebFinding]]] = {}
-
-        async def _guarded(name: str, coro: Any) -> list[WebFinding]:
-            if self._check_kill():
-                return []
-            async with self._sem:
-                try:
-                    return await coro
-                except Exception as exc:
-                    self._errors.append(f"{name}: {exc}")
-                    logger.error("Scan module %s failed: %s", name, exc)
-                    return []
-
-        module_map: dict[str, Any] = {
-            # Classic modules
-            "sqli":               self.run_sqli_tests(surface),
-            "xss":                self.run_xss_tests(surface),
-            "idor":               self.run_idor_tests(surface),
-            "lfi":                self.run_lfi_tests(surface),
-            "rfi":                self.run_rfi_tests(surface),
-            "command_injection":  self.run_command_injection_tests(surface),
-            "csrf":               self.run_csrf_tests(surface),
-            "auth":               self.run_auth_tests(surface),
-            "file_upload":        self.run_file_upload_tests(surface),
-            "security_headers":   self.run_header_analysis(surface),
-            "tls":                self.run_tls_analysis(target_url),
-            "cors":               self.run_cors_analysis(surface),
-            "sensitive_files":    self.run_sensitive_file_scan(surface),
-            "debug_endpoints":    self.run_debug_endpoint_scan(surface),
-            "ssrf":               self.run_ssrf_tests(surface),
-            "open_redirect":      self.run_open_redirect_tests(surface),
-            "graphql":            self.run_graphql_analysis(surface),
-            "jwt":                self.run_jwt_analysis(surface),
-            "prototype_pollution":self.run_prototype_pollution_tests(surface),
-
-            # Advanced 2026 modules
-            "jwt_algorithm_confusion":  self.run_jwt_algorithm_confusion_tests(surface),
-            "wasm_memory_corruption":   self.run_wasm_memory_corruption_tests(surface),
-            "css_container_injection":  self.run_css_container_injection_tests(surface),
-            "http3_stream_side_channel":self.run_http3_stream_side_channel_tests(surface),
-            "env_var_leakage":          self.run_env_var_leakage_tests(surface),
-            "async_hooks_poisoning":    self.run_async_hooks_poisoning_tests(surface),
-            "http_smuggling_webtransport":self.run_http_smuggling_webtransport_tests(surface),
-            "mongodb_injection":        self.run_mongodb_aggregation_injection_tests(surface),
-            "dom_clobbering":           self.run_dom_clobbering_tests(surface),
-            "server_timing_side_channel":self.run_server_timing_side_channel_tests(surface),
-            "web_crypto_timing":        self.run_web_crypto_timing_tests(surface),
-            "import_map_override":      self.run_import_map_override_tests(surface),
-            "cache_stamping":           self.run_cache_stamping_tests(surface),
-            "webauthn_rp_confusion":    self.run_webauthn_rp_confusion_tests(surface),
-            "deno_deserialization":     self.run_deno_deserialization_tests(surface),
-            "http3_0rtt_replay":        self.run_http3_0rtt_replay_tests(target_url),
-            "hpack_poisoning":          self.run_hpack_poisoning_tests(surface),
-            "graphql_n_plus_one":       self.run_graphql_n_plus_one_tests(surface),
-            "phar_deserialization":     self.run_phar_deserialization_tests(surface),
-        }
-
-        active = {
-            name: asyncio.create_task(_guarded(name, coro))
-            for name, coro in module_map.items()
-            if self._module_enabled(name)
-        }
-
-        all_findings: list[WebFinding] = []
-        results = await asyncio.gather(*active.values(), return_exceptions=True)
-        for findings in results:
-            if isinstance(findings, list):
-                all_findings.extend(findings)
-
-        # ── Phase 3: Run external tools if available ──────────────────────
-        tool_outputs = await self._run_external_tools(target_url, surface)
-
-        # ── Phase 4: Deduplicate and score ────────────────────────────────
-        min_conf = self._cfg.get("reporting", {}).get("min_confidence_threshold", 0.3)
-        all_findings = [f for f in all_findings if f.confidence >= min_conf]
-        all_findings = self._deduplicate(all_findings)
-
-        # ── Phase 5: Evidence-gated validation ───────────────────────────────
         try:
-            from modules.web_validation_agent import WebValidationAgent
-            async with self._make_client() as val_client:
-                get_fn  = lambda url, headers=None, params=None: self._get(
-                    val_client, url, params=params, headers=headers
-                )
-                post_fn = lambda url, data=None, json_=None, headers=None: self._post(
-                    val_client, url, data=data, json_=json_, headers=headers
-                )
-                agent = WebValidationAgent(
-                    get_fn=get_fn, post_fn=post_fn, kill_fn=self._check_kill
-                )
-                all_findings = await agent.validate_all(all_findings, surface)
-        except Exception as exc:
-            logger.warning("Validation agent failed (non-fatal): %s", exc)
+            # ── Phase 1: Attack surface discovery ─────────────────────────────
+            surface = await self.discover_attack_surface(target_url)
 
-        # ── Phase 6: LLM agent reasoning (optional) ───────────────────────
-        llm_result = None
-        llm_cfg    = self._cfg.get("llm", {})
-        if llm_cfg.get("enabled", False):
+            # ── Phase 1b: Merge Burp request seed (if provided) ───────────────
+            if self._burp_seed is not None:
+                self._merge_burp_seed(surface)
+
+            logger.info(
+                "Attack surface: %d URLs, %d forms, %d parameters, %d JS, %d WASM",
+                len(surface.urls), len(surface.forms),
+                sum(len(v) for v in surface.parameters.values()),
+                len(surface.js_files), len(surface.wasm_files),
+            )
+
+            # ── Phase 2: Run all enabled scan modules concurrently ────────────
+            scan_tasks: dict[str, asyncio.Task[list[WebFinding]]] = {}
+
+            async def _guarded(name: str, coro: Any) -> list[WebFinding]:
+                if self._check_kill():
+                    return []
+                async with self._sem:
+                    try:
+                        return await coro
+                    except Exception as exc:
+                        self._errors.append(f"{name}: {exc}")
+                        logger.error("Scan module %s failed: %s", name, exc)
+                        return []
+
+            module_map: dict[str, Any] = {
+                # Classic modules
+                "sqli":               self.run_sqli_tests(surface),
+                "xss":                self.run_xss_tests(surface),
+                "idor":               self.run_idor_tests(surface),
+                "lfi":                self.run_lfi_tests(surface),
+                "rfi":                self.run_rfi_tests(surface),
+                "command_injection":  self.run_command_injection_tests(surface),
+                "csrf":               self.run_csrf_tests(surface),
+                "auth":               self.run_auth_tests(surface),
+                "file_upload":        self.run_file_upload_tests(surface),
+                "security_headers":   self.run_header_analysis(surface),
+                "tls":                self.run_tls_analysis(target_url),
+                "cors":               self.run_cors_analysis(surface),
+                "sensitive_files":    self.run_sensitive_file_scan(surface),
+                "debug_endpoints":    self.run_debug_endpoint_scan(surface),
+                "ssrf":               self.run_ssrf_tests(surface),
+                "open_redirect":      self.run_open_redirect_tests(surface),
+                "graphql":            self.run_graphql_analysis(surface),
+                "jwt":                self.run_jwt_analysis(surface),
+                "prototype_pollution":self.run_prototype_pollution_tests(surface),
+
+                # Advanced 2026 modules
+                "jwt_algorithm_confusion":  self.run_jwt_algorithm_confusion_tests(surface),
+                "wasm_memory_corruption":   self.run_wasm_memory_corruption_tests(surface),
+                "css_container_injection":  self.run_css_container_injection_tests(surface),
+                "http3_stream_side_channel":self.run_http3_stream_side_channel_tests(surface),
+                "env_var_leakage":          self.run_env_var_leakage_tests(surface),
+                "async_hooks_poisoning":    self.run_async_hooks_poisoning_tests(surface),
+                "http_smuggling_webtransport":self.run_http_smuggling_webtransport_tests(surface),
+                "mongodb_injection":        self.run_mongodb_aggregation_injection_tests(surface),
+                "dom_clobbering":           self.run_dom_clobbering_tests(surface),
+                "server_timing_side_channel":self.run_server_timing_side_channel_tests(surface),
+                "web_crypto_timing":        self.run_web_crypto_timing_tests(surface),
+                "import_map_override":      self.run_import_map_override_tests(surface),
+                "cache_stamping":           self.run_cache_stamping_tests(surface),
+                "webauthn_rp_confusion":    self.run_webauthn_rp_confusion_tests(surface),
+                "deno_deserialization":     self.run_deno_deserialization_tests(surface),
+                "http3_0rtt_replay":        self.run_http3_0rtt_replay_tests(target_url),
+                "hpack_poisoning":          self.run_hpack_poisoning_tests(surface),
+                "graphql_n_plus_one":       self.run_graphql_n_plus_one_tests(surface),
+                "phar_deserialization":     self.run_phar_deserialization_tests(surface),
+            }
+
+            active = {
+                name: asyncio.create_task(_guarded(name, coro))
+                for name, coro in module_map.items()
+                if self._module_enabled(name)
+            }
+
             try:
-                from modules.web_llm_agent import WebLLMAgent
-                async with self._make_client() as llm_client:
-                    _get_fn  = lambda url, headers=None, params=None: self._get(
-                        llm_client, url, params=params, headers=headers
+                results = await asyncio.gather(*active.values(), return_exceptions=True)
+                for findings in results:
+                    if isinstance(findings, list):
+                        all_findings.extend(findings)
+            except (asyncio.CancelledError, KeyboardInterrupt):
+                # Salvage results from tasks that completed before the interrupt
+                for task in active.values():
+                    if task.done() and not task.cancelled():
+                        try:
+                            r = task.result()
+                            if isinstance(r, list):
+                                all_findings.extend(r)
+                        except Exception:
+                            pass
+                    elif not task.done():
+                        task.cancel()
+                raise
+
+            # ── Phase 3: Run external tools if available ──────────────────────
+            _tool_filter = self._cfg.get("recon", {}).get("tool_filter") or None
+            tool_outputs = await self._run_external_tools(target_url, surface, tool_filter=_tool_filter)
+
+            # ── Phase 4: Deduplicate and score ────────────────────────────────
+            min_conf = self._cfg.get("reporting", {}).get("min_confidence_threshold", 0.3)
+            all_findings = [f for f in all_findings if f.confidence >= min_conf]
+            all_findings = self._deduplicate(all_findings)
+
+            # ── Phase 5: Evidence-gated validation ───────────────────────────────
+            try:
+                from modules.web_validation_agent import WebValidationAgent
+                async with self._make_client() as val_client:
+                    get_fn  = lambda url, headers=None, params=None: self._get(
+                        val_client, url, params=params, headers=headers
                     )
-                    _post_fn = lambda url, data=None, json_=None, headers=None: self._post(
-                        llm_client, url, data=data, json_=json_, headers=headers
+                    post_fn = lambda url, data=None, json_=None, headers=None: self._post(
+                        val_client, url, data=data, json_=json_, headers=headers
                     )
-                    llm_agent  = WebLLMAgent(config=llm_cfg)
-                    llm_result = await llm_agent.run(
-                        engine=self,
-                        surface=surface,
-                        findings=all_findings,
-                        get_fn=_get_fn,
-                        post_fn=_post_fn,
-                        kill_fn=self._check_kill,
+                    agent = WebValidationAgent(
+                        get_fn=get_fn, post_fn=post_fn, kill_fn=self._check_kill
                     )
-                    if llm_result.additional_findings:
-                        all_findings.extend(llm_result.additional_findings)
-                        all_findings = self._deduplicate(all_findings)
-                        logger.info(
-                            "LLM agent added %d new findings",
-                            len(llm_result.additional_findings),
-                        )
+                    all_findings = await agent.validate_all(all_findings, surface)
             except Exception as exc:
-                logger.warning("LLM agent failed (non-fatal): %s", exc)
+                logger.warning("Validation agent failed (non-fatal): %s", exc)
+
+            # ── Phase 6: LLM agent reasoning (optional) ───────────────────────
+            llm_cfg    = self._cfg.get("llm", {})
+            if llm_cfg.get("enabled", False):
+                try:
+                    from modules.web_llm_agent import WebLLMAgent
+                    async with self._make_client() as llm_client:
+                        _get_fn  = lambda url, headers=None, params=None: self._get(
+                            llm_client, url, params=params, headers=headers
+                        )
+                        _post_fn = lambda url, data=None, json_=None, headers=None: self._post(
+                            llm_client, url, data=data, json_=json_, headers=headers
+                        )
+                        llm_agent  = WebLLMAgent(config=llm_cfg)
+                        llm_result = await llm_agent.run(
+                            engine=self,
+                            surface=surface,
+                            findings=all_findings,
+                            get_fn=_get_fn,
+                            post_fn=_post_fn,
+                            kill_fn=self._check_kill,
+                        )
+                        if llm_result.additional_findings:
+                            all_findings.extend(llm_result.additional_findings)
+                            all_findings = self._deduplicate(all_findings)
+                            logger.info(
+                                "LLM agent added %d new findings",
+                                len(llm_result.additional_findings),
+                            )
+                except Exception as exc:
+                    logger.warning("LLM agent failed (non-fatal): %s", exc)
+
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            self._errors.append("Scan interrupted by user — partial results only")
+            logger.warning(
+                "Scan interrupted — partial report: %d findings, %d tool outputs",
+                len(all_findings), len(tool_outputs),
+            )
+
+        # ── Build result from whatever was collected ──────────────────────────
+        if surface is None:
+            surface = AttackSurface(
+                base_url=target_url, urls=[target_url], forms=[], parameters={},
+                cookies=[], headers={}, technologies=[], js_files=[],
+                api_endpoints=[],
+            )
 
         ended_at = time.time()
         summary  = self._compute_summary(all_findings, started_at, ended_at, surface)
@@ -1047,6 +1079,85 @@ class WebVAPTEngine:
     # =========================================================================
     # Attack Surface Discovery
     # =========================================================================
+
+    async def _run_katana(self, url: str) -> list[str]:
+        """Run katana for JS-rendered crawl. Returns list of discovered URLs.
+        Gracefully returns [] if katana is not installed or the kill switch fires."""
+        if self._kill.is_set():
+            return []
+
+        cfg     = self._cfg.get("crawl", {})
+        depth   = str(cfg.get("max_depth", 3))
+        timeout = int(self._cfg.get("tool_timeout", 60))
+
+        cmd = [
+            "katana",
+            "-u", url,
+            "-d", depth,
+            "-jc",            # JS crawl
+            "-kf", "all",     # known files
+            "-silent",        # URLs only on stdout
+            "-no-color",
+            "-timeout", str(timeout),
+        ]
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            logger.debug("katana not found in PATH — skipping JS crawl")
+            return []
+        except Exception as exc:
+            logger.debug("katana launch failed: %s", exc)
+            return []
+
+        # Race katana against the kill switch
+        comm_task = asyncio.ensure_future(proc.communicate())
+        kill_task = asyncio.ensure_future(self._kill.wait())
+        try:
+            done, _ = await asyncio.wait(
+                {comm_task, kill_task},
+                timeout=float(timeout) + 5,
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        except asyncio.CancelledError:
+            comm_task.cancel()
+            kill_task.cancel()
+            try:
+                proc.kill()
+                await proc.communicate()
+            except Exception:
+                pass
+            raise
+        finally:
+            kill_task.cancel()
+
+        if comm_task not in done or comm_task.cancelled():
+            comm_task.cancel()
+            try:
+                proc.kill()
+                await proc.communicate()
+            except Exception:
+                pass
+            logger.debug("katana stopped (kill switch or timeout)")
+            return []
+
+        stdout_b, _ = comm_task.result()
+        urls: list[str] = []
+        base = urlparse(url).netloc
+        for line in stdout_b.decode("utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parsed = urlparse(line)
+            if parsed.scheme in ("http", "https") and parsed.netloc == base:
+                urls.append(line)
+
+        logger.debug("katana found %d URLs for %s", len(urls), url)
+        return urls
 
     async def discover_attack_surface(self, url: str) -> AttackSurface:
         """
@@ -4388,186 +4499,80 @@ class WebVAPTEngine:
         return findings
 
     # =========================================================================
-    # External Tool Runners
+    # External Tool Runners  (Phase 3 — delegated to ReconEngine)
     # =========================================================================
 
     async def _run_external_tools(
         self,
-        url:     str,
-        surface: AttackSurface,
+        url:         str,
+        surface:     AttackSurface,
+        tool_filter: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Run configured external tools and collect their output. Failures are isolated."""
-        outputs: dict[str, Any] = {}
-        tools_cfg = self._cfg.get("tools", {})
-        parsed    = urlparse(url)
-        host      = parsed.hostname or ""
-
-        tasks = {}
-        if tools_cfg.get("whatweb", {}).get("enabled", True):
-            tasks["whatweb"] = self._run_whatweb(url)
-        if tools_cfg.get("nmap", {}).get("enabled", True) and host:
-            tasks["nmap"] = self._run_nmap(host, tools_cfg.get("nmap", {}).get("port_range", "80,443,8080"))
-        if tools_cfg.get("nikto", {}).get("enabled", True):
-            tasks["nikto"] = self._run_nikto(url)
-        if tools_cfg.get("nuclei", {}).get("enabled", True):
-            tasks["nuclei"] = self._run_nuclei(url)
-        if tools_cfg.get("subfinder", {}).get("enabled", False) and host:
-            tasks["subfinder"] = self._run_subfinder(host)
-        if tools_cfg.get("gau", {}).get("enabled", False) and host:
-            tasks["gau"] = self._run_gau(host)
-
-        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
-        for name, result in zip(tasks.keys(), results):
-            if isinstance(result, Exception):
-                self._errors.append(f"tool:{name}: {result}")
-                outputs[name] = {"error": str(result)}
-            else:
-                outputs[name] = result
-
-        return outputs
-
-    async def _run_tool(
-        self,
-        cmd:       list[str],
-        timeout:   float,
-        tool_name: str,
-    ) -> tuple[str, str, int]:
         """
-        Execute an external tool via asyncio subprocess.
-        Never uses shell=True. Returns (stdout, stderr, returncode).
+        Run all configured Kali Linux recon tools via ReconEngine.
+        Results are stored in tool_outputs on the WebAssessmentResult.
+        Failures inside individual tools are isolated — one failing tool
+        never aborts the others.
         """
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout = asyncio.subprocess.PIPE,
-                stderr = asyncio.subprocess.PIPE,
-            )
-            try:
-                stdout_b, stderr_b = await asyncio.wait_for(
-                    proc.communicate(), timeout=timeout
-                )
-            except asyncio.TimeoutError:
-                try:
-                    proc.kill()
-                    await proc.communicate()
-                except Exception:
-                    pass
-                logger.warning("Tool %s timed out after %.0fs", tool_name, timeout)
-                return "", f"timeout after {timeout}s", -1
-            return (
-                stdout_b.decode("utf-8", errors="replace"),
-                stderr_b.decode("utf-8", errors="replace"),
-                proc.returncode or 0,
-            )
-        except FileNotFoundError:
-            logger.debug("Tool not available: %s", tool_name)
-            return "", f"{tool_name} not found in PATH", -1
+            from modules.recon_tools import ReconEngine
+        except ImportError as exc:
+            logger.warning("ReconEngine not available: %s", exc)
+            return {}
+
+        recon = ReconEngine(config=self._cfg, kill_switch=self._kill)
+        try:
+            recon_result = await recon.run(url, tool_filter=tool_filter)
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            logger.warning("ReconEngine interrupted — returning partial tool outputs")
+            return {}
         except Exception as exc:
-            logger.warning("Tool %s error: %s", tool_name, exc)
-            return "", str(exc), -1
+            logger.warning("ReconEngine.run failed: %s", exc)
+            return {}
 
-    async def _run_whatweb(self, url: str) -> dict[str, Any]:
-        stdout, stderr, rc = await self._run_tool(
-            ["whatweb", "--log-json=-", "--quiet", url],
-            self._tool_timeout, "whatweb",
-        )
-        if not stdout:
-            return {"available": False, "error": stderr.strip()}
-        try:
-            return {"available": True, "output": json.loads(stdout)}
-        except (json.JSONDecodeError, ValueError):
-            return {"available": True, "raw": stdout[:2000]}
+        # Merge recon surface data back into the attack surface
+        if recon_result.subdomains:
+            surface.technologies.extend(
+                sub for sub in recon_result.subdomains
+                if sub not in surface.technologies
+            )
+        if recon_result.technologies:
+            surface.technologies.extend(
+                t for t in recon_result.technologies
+                if t not in surface.technologies
+            )
 
-    async def _run_nmap(self, host: str, ports: str) -> dict[str, Any]:
-        stdout, stderr, rc = await self._run_tool(
-            ["nmap", "-sV", "--open", "-p", ports, "-oJ", "-", host],
-            self._tool_timeout, "nmap",
+        # Log recon summary
+        logger.info(
+            "Phase 3 recon: tools_available=%d tools_unavailable=%d "
+            "ports=%d subdomains=%d dirs=%d waf=%s",
+            len(recon_result.tools_available),
+            len(recon_result.tools_unavailable),
+            len(recon_result.open_ports),
+            len(recon_result.subdomains),
+            len(recon_result.web_dirs),
+            recon_result.waf_detected or "none",
         )
-        if not stdout:
-            return {"available": False, "error": stderr.strip()}
-        try:
-            return {"available": True, "output": json.loads(stdout)}
-        except (json.JSONDecodeError, ValueError):
-            return {"available": True, "raw": stdout[:2000]}
 
-    async def _run_nikto(self, url: str) -> dict[str, Any]:
-        stdout, stderr, rc = await self._run_tool(
-            ["nikto", "-h", url, "-Format", "json", "-nointeractive", "-Tuning", "x"],
-            self._tool_timeout, "nikto",
-        )
-        if not stdout:
-            return {"available": False, "error": stderr.strip()}
-        try:
-            return {"available": True, "output": json.loads(stdout)}
-        except (json.JSONDecodeError, ValueError):
-            return {"available": True, "raw": stdout[:3000]}
-
-    async def _run_nuclei(self, url: str) -> dict[str, Any]:
-        stdout, stderr, rc = await self._run_tool(
-            ["nuclei", "-u", url, "-json", "-silent", "-severity", "low,medium,high,critical"],
-            self._tool_timeout, "nuclei",
-        )
-        if not stdout:
-            return {"available": False, "error": stderr.strip()}
-        findings: list[dict[str, Any]] = []
-        for line in stdout.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                findings.append(json.loads(line))
-            except (json.JSONDecodeError, ValueError):
-                pass
-        return {"available": True, "findings": findings, "count": len(findings)}
-
-    async def _run_katana(self, url: str) -> list[str]:
-        stdout, _, rc = await self._run_tool(
-            ["katana", "-u", url, "-silent", "-jc", "-depth", "3", "-jsonl"],
-            self._tool_timeout, "katana",
-        )
-        urls: list[str] = []
-        for line in stdout.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                d = json.loads(line)
-                ep = d.get("request", {}).get("endpoint", "") or d.get("endpoint", "")
-                if ep:
-                    urls.append(ep)
-            except (json.JSONDecodeError, ValueError):
-                if line.startswith("http"):
-                    urls.append(line)
-        return urls
-
-    async def _run_subfinder(self, domain: str) -> dict[str, Any]:
-        stdout, stderr, rc = await self._run_tool(
-            ["subfinder", "-d", domain, "-silent"],
-            self._tool_timeout, "subfinder",
-        )
-        if not stdout:
-            return {"available": False, "error": stderr.strip()}
-        return {"available": True, "subdomains": [s for s in stdout.splitlines() if s.strip()]}
-
-    async def _run_gau(self, domain: str) -> dict[str, Any]:
-        stdout, stderr, rc = await self._run_tool(
-            ["gau", "--json", domain],
-            self._tool_timeout, "gau",
-        )
-        if not stdout:
-            return {"available": False, "error": stderr.strip()}
-        urls: list[str] = []
-        for line in stdout.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                d = json.loads(line)
-                urls.append(d.get("url", ""))
-            except (json.JSONDecodeError, ValueError):
-                if line.startswith("http"):
-                    urls.append(line)
-        return {"available": True, "urls": urls[:200], "count": len(urls)}
+        # Return full tool output dict (keyed by tool name)
+        return {
+            **recon_result.tool_outputs,
+            "_recon_summary": {
+                "tools_run":         recon_result.tools_run,
+                "tools_available":   recon_result.tools_available,
+                "tools_unavailable": recon_result.tools_unavailable,
+                "open_ports":        recon_result.open_ports,
+                "subdomains":        recon_result.subdomains,
+                "dns_records":       recon_result.dns_records,
+                "web_dirs":          recon_result.web_dirs[:100],
+                "technologies":      recon_result.technologies,
+                "emails":            recon_result.emails,
+                "historical_urls":   recon_result.historical_urls[:50],
+                "waf_detected":      recon_result.waf_detected,
+                "duration_s":        round(recon_result.duration, 1),
+                "findings_count":    len(recon_result.findings),
+            },
+        }
 
     # =========================================================================
     # Deduplication and Summary
