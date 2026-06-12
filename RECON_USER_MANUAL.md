@@ -24,6 +24,9 @@ _Authorised lab / owned-infrastructure use only_
 15. [Enabling Extra Tools in Config](#15-enabling-extra-tools-in-config)
 16. [Output & Reports](#16-output--reports)
 17. [Troubleshooting](#17-troubleshooting)
+18. [Agentic Mode — run_agent.py](#18-agentic-mode--run_agentpy)
+19. [Exploit Intelligence Engine](#19-exploit-intelligence-engine)
+20. [MITRE ATT&CK Chain Analysis](#20-mitre-attck-chain-analysis)
 
 ---
 
@@ -48,7 +51,18 @@ python run_recon.py --target http://TARGET --output reports/recon/pass1
 python run_recon.py --target http://TARGET --verbose
 ```
 
+### Agentic mode (autonomous, all-in-one)
+
+```bash
+# Agent chooses tools automatically + adds exploit lookup + MITRE ATT&CK chains
+python run_agent.py --target http://TARGET
+
+# Cap iterations for a faster run
+python run_agent.py --target http://TARGET --max-iter 5 --verbose
+```
+
 > For web vulnerability scanning (SQLi, XSS, IDOR, etc.) use `run_vapt.py` separately.
+> For exploit intelligence and ATT&CK chain analysis see §18–20 of this manual.
 
 ### All 29 tools at a glance
 
@@ -1554,6 +1568,201 @@ python run_recon.py --target http://192.168.0.107 \
   --tools ffuf,gobuster,nikto \
   --output reports/recon/pass2
 ```
+
+---
+
+---
+
+## 18. Agentic Mode — run_agent.py
+
+The agentic mode wraps `ReconEngine`, `ExploitEngine`, and `AttackChainBuilder` into an autonomous **ReAct loop** that decides which tools to run based on what it has already discovered.
+
+### Quick start
+
+```bash
+# Full autonomous run
+python run_agent.py --target http://192.168.0.102
+
+# Cap iterations for a faster run
+python run_agent.py --target http://192.168.0.102 --max-iter 5
+
+# Show the agent's reasoning at every step
+python run_agent.py --target http://192.168.0.102 --verbose
+
+# Offline mode (skip NVD CVE API)
+python run_agent.py --target http://192.168.0.102 --no-nvd
+
+# Custom output folder
+python run_agent.py --target http://192.168.0.102 --output reports/agent/pass1
+```
+
+### How the agent picks its next tool
+
+| Iteration | Action | Condition |
+|---|---|---|
+| 1 | `initial_recon` | Always first |
+| 2 | `subdomain_deep` | Subdomains found in iteration 1 |
+| 3 | `web_discovery` | Technologies fingerprinted |
+| 4 | `exploit_lookup` | Any findings accumulated |
+| 5 | `chain_analysis` | Exploit report ready |
+| 6 | `osint` | Subdomains exist |
+| 7 | `vuln_scan` | Tech stack known |
+| 8 | `smb_scan` | Port 445 or 139 open |
+
+Each action feeds its results back into the shared context so later phases start with richer data.
+
+### Comparing run_recon.py vs run_agent.py
+
+| Feature | `run_recon.py` | `run_agent.py` |
+|---|---|---|
+| Tool selection | Manual (`--tools`) or default set | Automatic (rule-based planner) |
+| Exploit lookup | No | Yes — searchsploit + NVD |
+| MITRE ATT&CK chains | No | Yes |
+| Attack narratives | No | Yes |
+| MSF module hints | No | Yes |
+| Iterations | Single pass | Up to `--max-iter` |
+| Reports | `reports/recon/` | `reports/agent/` |
+
+### When to use each
+
+- **`run_recon.py --tools X,Y`** — when you know which specific tools you want and want full control
+- **`run_recon.py`** (interactive) — when you want to pick from a menu of scan profiles
+- **`run_agent.py`** — when you want an autonomous, full-depth assessment including exploit suggestions and attack chain mapping
+
+---
+
+## 19. Exploit Intelligence Engine
+
+`modules/exploit_engine.py` is invoked by `run_agent.py` during the `exploit_lookup` phase.
+
+### What it does
+
+1. **Technology scan** — extracts search terms from discovered tech stack, services, and CVEs found in findings
+2. **searchsploit** — calls `searchsploit --json <query>` for each term (never `shell=True`)
+3. **NVD enrichment** — queries `https://services.nvd.nist.gov/rest/json/cves/2.0` for CVSS score + description
+4. **MSF mapping** — matches CVEs to curated Metasploit module table
+
+### Output per exploit match
+
+| Field | Description |
+|---|---|
+| `title` | Exploit-DB title |
+| `cve` | CVE identifier (if in title) |
+| `cvss_score` | CVSS base score (from NVD) |
+| `severity` | critical / high / medium / low |
+| `exploit_type` | remote / local / dos / webapps |
+| `platform` | Target platform |
+| `msf_module` | Metasploit module path (if mapped) |
+| `searchsploit_path` | Path to copy with `searchsploit -m` |
+| `url` | Exploit-DB permalink |
+
+### Using exploit results manually
+
+After the agent writes a report, use the searchsploit commands directly:
+
+```bash
+# Copy exploit to current directory
+searchsploit -m exploits/linux/remote/50383.py
+
+# Examine the exploit
+cat 50383.py | head -50
+
+# Run msfconsole with module from report
+msfconsole -q -x "use exploit/multi/http/apache_normalize_path_rce; set RHOSTS 192.168.0.102; exploit"
+```
+
+### NVD rate limiting
+
+The NVD API is public but rate-limited. The engine caps enrichment at 8 CVEs per run. If you hit a rate limit:
+
+```bash
+# Add a delay by running with fewer iterations
+python run_agent.py --target http://192.168.0.102 --max-iter 3
+
+# Or disable NVD entirely
+python run_agent.py --target http://192.168.0.102 --no-nvd
+```
+
+---
+
+## 20. MITRE ATT&CK Chain Analysis
+
+`modules/attack_chain.py` is invoked by `run_agent.py` during the `chain_analysis` phase.
+
+### What it does
+
+1. Maps every finding to a MITRE ATT&CK **tactic** and **technique** via a 50+ keyword lookup table
+2. Deduplicates nodes by technique ID, keeping the highest-exploitability instance
+3. Builds attack chains using a sliding window across the kill-chain tactic sequence
+4. Generates three named scenarios automatically
+5. Scores each chain and ranks them
+
+### ATT&CK tactic ordering (kill chain)
+
+```
+Reconnaissance → Resource Development → Initial Access → Execution →
+Persistence → Privilege Escalation → Defense Evasion → Credential Access →
+Discovery → Lateral Movement → Collection → Exfiltration → Impact
+```
+
+### Named attack scenarios
+
+| Scenario | Tactics | What it means |
+|---|---|---|
+| **Full Kill Chain** | Recon → IA → Exec → PrivEsc → LM → Impact | Complete end-to-end compromise |
+| **Data Breach Path** | IA → Credential Access → Collection → Exfil | Sensitive data theft |
+| **Ransomware Path** | IA → Execution → PrivEsc → Impact | Encryption + disruption |
+
+### Chain scoring
+
+```
+score = tactic_diversity × avg_exploitability × (1 + span_bonus)
+```
+
+- `tactic_diversity` — number of distinct tactics in the chain
+- `avg_exploitability` — average exploitability of all nodes (0–1, derived from severity)
+- `span_bonus` — bonus for longer chains (capped at 1.5)
+
+Higher score = more dangerous and more exploitable chain.
+
+### Example chain output in report
+
+```
+### Chain 1: Initial Access → Execution  (score 4.8)
+
+Impact: Remote code execution on target host.
+
+Attack Path:
+  [T1190 — Initial Access]
+      ↓
+  [T1059 — Execution]
+
+Narrative:
+  Step 1  [T1190 — Initial Access]
+           An attacker leverages 'Exploit Public-Facing Application'
+           via 'SQL Injection in login form' (severity: high, tool: sqlmap).
+  Step 2  [T1059 — Execution]
+           next leverages 'Command and Scripting Interpreter'
+           via 'Command Injection in ping param' (severity: critical, tool: nikto).
+
+Impact: Remote code execution on target host.
+```
+
+### Reading the attack surface score
+
+The **attack surface score** (0–10) summarises overall risk:
+
+```
+attack_surface_score = (tactic_coverage / 13) × 10 × avg_exploitability
+```
+
+| Score | Risk level |
+|---|---|
+| 8–10 | Critical — immediate remediation required |
+| 6–8 | High — significant attack surface |
+| 4–6 | Medium — multiple entry points found |
+| 2–4 | Low — limited attack surface |
+| 0–2 | Minimal — informational findings only |
 
 ---
 

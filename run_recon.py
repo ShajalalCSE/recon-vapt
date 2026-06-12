@@ -44,6 +44,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 # ---------------------------------------------------------------------------
 # Bootstrap
@@ -158,6 +159,210 @@ def cmd_list_tools() -> None:
     print()
     print("  Use --tools TOOL1,TOOL2,... to select specific tools.")
     print()
+
+
+# ---------------------------------------------------------------------------
+# Interactive tool selection
+# ---------------------------------------------------------------------------
+
+_PROFILES: list[tuple[str, list[str]]] = [
+    ("Quick Fingerprint",  ["nmap", "whatweb", "wafw00f", "whois"]),
+    ("DNS & Subdomains",   ["nslookup", "dig", "dnsrecon", "subfinder"]),
+    ("Web Discovery",      ["ffuf", "gobuster", "nikto"]),
+    ("Full Default Scan",  ["nmap", "nslookup", "dig", "subfinder", "ffuf", "gobuster",
+                            "whatweb", "wafw00f", "nikto", "nuclei", "whois"]),
+    ("OSINT & History",    ["whois", "theharvester", "subfinder", "gau", "waybackurls"]),
+    ("Network & SMB",      ["nmap", "masscan", "enum4linux", "smbmap"]),
+]
+
+_CAT_LABELS: dict[str, str] = {
+    "network_scan":  "Network Scanning",
+    "dns":           "DNS Reconnaissance",
+    "subdomain":     "Subdomain Enumeration",
+    "web_fuzz":      "Web Fuzzing",
+    "fingerprint":   "Web Fingerprinting",
+    "osint":         "OSINT",
+    "historical":    "Historical URLs",
+    "vulnerability": "Vulnerability Scanning",
+    "smb":           "SMB / Windows Recon",
+    "crawl":         "Web Crawling",
+}
+
+_KALI_CMDS: dict[str, str] = {
+    "nmap":         "nmap -sV -sC -p- {host}",
+    "masscan":      "masscan -p1-65535 {host} --rate=5000",
+    "nslookup":     "nslookup {domain}",
+    "dig":          "dig {domain} ANY",
+    "dnsrecon":     "dnsrecon -d {domain}",
+    "dnsx":         "echo {domain} | dnsx -a -aaaa -mx -ns -txt",
+    "fierce":       "fierce --domain {domain}",
+    "dnsenum":      "dnsenum {domain}",
+    "subfinder":    "subfinder -d {domain} -silent",
+    "amass":        "amass enum -passive -d {domain}",
+    "assetfinder":  "assetfinder --subs-only {domain}",
+    "ffuf":         "ffuf -u {target}/FUZZ -w /usr/share/wordlists/dirb/common.txt",
+    "gobuster":     "gobuster dir -u {target} -w /usr/share/wordlists/dirb/common.txt",
+    "feroxbuster":  "feroxbuster -u {target}",
+    "dirb":         "dirb {target} /usr/share/wordlists/dirb/common.txt",
+    "dirsearch":    "dirsearch -u {target}",
+    "wfuzz":        "wfuzz -w /usr/share/wordlists/dirb/common.txt {target}/FUZZ",
+    "whatweb":      "whatweb {target}",
+    "wafw00f":      "wafw00f {target}",
+    "nikto":        "nikto -h {target}",
+    "httpx":        "echo {host} | httpx -tech-detect -status-code",
+    "theharvester": "theHarvester -d {domain} -b all",
+    "whois":        "whois {domain}",
+    "gau":          "gau {domain}",
+    "waybackurls":  "waybackurls {domain}",
+    "nuclei":       "nuclei -u {target} -severity medium,high,critical",
+    "enum4linux":   "enum4linux -a {host}",
+    "smbmap":       "smbmap -H {host}",
+    "katana":       "katana -u {target} -d 3 -silent",
+}
+
+
+def _show_kali_suggestions(tools: list[str], target: str) -> None:
+    """Print direct Kali command hints for the selected tools."""
+    p = urlparse(target)
+    host = p.netloc or p.path or target
+    domain = host.split(":")[0]
+
+    relevant = [(t, _KALI_CMDS[t]) for t in tools if t in _KALI_CMDS]
+    if not relevant:
+        return
+
+    print("  Kali Command Suggestions:")
+    print()
+    for tool, tpl in relevant:
+        cmd = tpl.format(host=host, domain=domain, target=target)
+        print(f"    [{tool}]")
+        print(f"      $ {cmd}")
+    print()
+
+
+def _pick_custom_tools() -> list[str]:
+    """Show the full numbered tool list; return the user's selection."""
+    try:
+        from modules.recon_tools import ALL_TOOLS, DEFAULT_ENABLED
+    except ImportError:
+        print("  [ERROR] Cannot load modules/recon_tools.py")
+        return []
+
+    by_cat: dict[str, list[str]] = {}
+    for tool, cat in ALL_TOOLS.items():
+        by_cat.setdefault(cat, []).append(tool)
+
+    numbered: list[tuple[int, str]] = []
+    n = 1
+    print()
+    print("  All Available Tools:")
+    print()
+    for cat, label in _CAT_LABELS.items():
+        tools_in_cat = sorted(by_cat.get(cat, []))
+        if not tools_in_cat:
+            continue
+        print(f"  [{label}]")
+        for tool in tools_in_cat:
+            dflt = "  (default)" if tool in DEFAULT_ENABLED else ""
+            print(f"    {n:2}. {tool:<18}{dflt}")
+            numbered.append((n, tool))
+            n += 1
+        print()
+
+    tool_map = {num: tool for num, tool in numbered}
+
+    while True:
+        try:
+            raw = input("  Enter numbers (e.g. 1,3,9), 'all', or 'default': ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            return []
+
+        if raw == "all":
+            return [t for _, t in numbered]
+        if raw in ("default", ""):
+            return list(DEFAULT_ENABLED)
+        try:
+            indices = [int(x.strip()) for x in raw.split(",") if x.strip()]
+            selected: list[str] = []
+            bad: list[int] = []
+            for i in indices:
+                if i in tool_map:
+                    if tool_map[i] not in selected:
+                        selected.append(tool_map[i])
+                else:
+                    bad.append(i)
+            if bad:
+                print(f"  Invalid numbers: {bad}. Try again.")
+                continue
+            if not selected:
+                print("  No tools selected. Try again.")
+                continue
+            return selected
+        except ValueError:
+            print("  Enter comma-separated numbers (e.g. 1,3,9), 'all', or 'default'.")
+
+
+def _interactive_select_tools(target_url: str) -> list[str] | None:
+    """
+    Present a scan-profile menu and return the chosen tool list.
+    Returns None if the user aborts.
+    """
+    print()
+    print("  ┌─────────────────────────────────────────────────────┐")
+    print("  │  Interactive Mode — Select a Scan Profile            │")
+    print("  └─────────────────────────────────────────────────────┘")
+    print()
+    print("  Scan Profiles:")
+    print()
+    for i, (name, tools) in enumerate(_PROFILES, 1):
+        preview = ", ".join(tools[:4]) + ("..." if len(tools) > 4 else "")
+        print(f"    {i}. {name:<22}  {preview}")
+    print()
+    print(f"    {len(_PROFILES)+1}. Custom Selection      Pick from all 29 tools individually")
+    print()
+    print("  Press Enter to run the Full Default Scan (option 4).")
+    print()
+
+    while True:
+        try:
+            choice = input("  Select [1-7 or Enter for default]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+
+        if choice == "":
+            name, tools = _PROFILES[3]  # Full Default Scan
+            selected = list(tools)
+            break
+
+        if not choice.isdigit():
+            print(f"  Enter a number 1-{len(_PROFILES)+1} or press Enter for default.")
+            continue
+
+        n = int(choice)
+        if 1 <= n <= len(_PROFILES):
+            name, tools = _PROFILES[n - 1]
+            selected = list(tools)
+            break
+        if n == len(_PROFILES) + 1:
+            selected = _pick_custom_tools()
+            if not selected:
+                return None
+            name = "Custom Selection"
+            break
+        print(f"  Enter a number 1-{len(_PROFILES)+1} or press Enter for default.")
+
+    print()
+    print("  ─────────────────────────────────────────────────────────")
+    print(f"  Profile  : {name}")
+    print(f"  Tools    : {', '.join(selected)}")
+    print()
+    print(f"  Reuse this scan later:")
+    print(f"    python run_recon.py --target {target_url} --tools {','.join(selected)}")
+    print("  ─────────────────────────────────────────────────────────")
+    print()
+    _show_kali_suggestions(selected, target_url)
+
+    return selected
 
 
 # ---------------------------------------------------------------------------
@@ -352,8 +557,9 @@ def _write_report(result: "ReconResult", output_dir: str, interrupted: bool) -> 
 # ---------------------------------------------------------------------------
 
 async def run_recon(args: argparse.Namespace) -> int:
-    print(BANNER)
-    print()
+    if not getattr(args, "_banner_shown", False):
+        print(BANNER)
+        print()
 
     if args.verbose:
         set_level("DEBUG")
@@ -510,6 +716,27 @@ def main() -> None:
     if args.list_tools:
         cmd_list_tools()
         sys.exit(0)
+
+    # Interactive mode: --target given but --tools omitted
+    args._banner_shown = False
+    if args.target and not args.tools:
+        print(BANNER)
+        print()
+        args._banner_shown = True
+
+        selected = _interactive_select_tools(args.target)
+        if selected is None:
+            print("\n  Aborted.\n")
+            sys.exit(0)
+        args.tools = ",".join(selected)
+
+        print("  Starting scan in 3 seconds... (Ctrl+C to cancel)")
+        try:
+            time.sleep(3)
+        except KeyboardInterrupt:
+            print("\n  Cancelled.\n")
+            sys.exit(0)
+        print()
 
     try:
         code = asyncio.run(run_recon(args))

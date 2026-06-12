@@ -14,16 +14,17 @@
 5. [Quick Start](#5-quick-start)
 6. [run_vapt.py — Web Vulnerability Scanner](#6-run_vaptpy--web-vulnerability-scanner)
 7. [run_recon.py — Recon Tools Scanner](#7-run_reconpy--recon-tools-scanner)
-8. [Burp Suite Integration](#8-burp-suite-integration)
-9. [Authentication Options](#9-authentication-options)
-10. [Module Selection](#10-module-selection)
-11. [Configuration Files](#11-configuration-files)
-12. [Scan Phases](#12-scan-phases)
-13. [Understanding Reports](#13-understanding-reports)
-14. [Scan Modules Reference](#14-scan-modules-reference)
-15. [Troubleshooting](#15-troubleshooting)
-16. [Workflow Examples](#16-workflow-examples)
-17. [Recon Tools Reference](#17-recon-tools-reference)
+8. [run_agent.py — Agentic Mode](#8-run_agentpy--agentic-mode)
+9. [Burp Suite Integration](#9-burp-suite-integration)
+10. [Authentication Options](#10-authentication-options)
+11. [Module Selection](#11-module-selection)
+12. [Configuration Files](#12-configuration-files)
+13. [Scan Phases](#13-scan-phases)
+14. [Understanding Reports](#14-understanding-reports)
+15. [Scan Modules Reference](#15-scan-modules-reference)
+16. [Troubleshooting](#16-troubleshooting)
+17. [Workflow Examples](#17-workflow-examples)
+18. [Recon Tools Reference](#18-recon-tools-reference)
 
 ---
 
@@ -35,6 +36,7 @@ AI Red Team Harness v3 is a Python-based, non-destructive web application securi
 |---|---|---|
 | `run_vapt.py` | Web vulnerability scanning (SQLi, XSS, IDOR, LFI, CORS, etc.) | `reports/web/` |
 | `run_recon.py` | Kali Linux recon tools (nmap, subfinder, ffuf, gobuster, etc.) | `reports/recon/` |
+| `run_agent.py` | **Agentic mode** — autonomous ReAct loop with exploit lookup + MITRE ATT&CK chains | `reports/agent/` |
 
 Run them together for a full assessment, or independently as needed.
 
@@ -65,6 +67,22 @@ Phase 6  →  LLM agent reasoning (optional, requires Ollama)
          →  Kill switch: Ctrl+C saves partial results immediately
          →  Report written to reports/recon/
 ```
+
+### Agentic flow (`run_agent.py`)
+
+```
+Iteration 1  →  initial_recon   (nmap, nslookup, whatweb, wafw00f, whois)
+Iteration 2  →  subdomain_deep  (subfinder, dig, dnsrecon)    ← if subdomains found
+Iteration 3  →  web_discovery   (ffuf, gobuster, nikto)       ← if tech identified
+Iteration 4  →  exploit_lookup  (searchsploit + NVD CVE API)  ← maps findings to CVEs
+Iteration 5  →  chain_analysis  (MITRE ATT&CK graph + scoring)
+Iteration 6  →  osint           (theharvester, gau, waybackurls)
+Iteration 7  →  vuln_scan       (nuclei targeted)
+Iteration 8  →  smb_scan        (enum4linux, smbmap)          ← if port 445/139 open
+             →  Report written to reports/agent/
+```
+
+Each iteration uses findings from previous ones — the agent reasons about what to explore next.
 
 ---
 
@@ -132,6 +150,8 @@ pip install -r requirements.txt
 python run_vapt.py --create-lab-marker
 # or
 python run_recon.py --create-lab-marker
+# or
+python run_agent.py --create-lab-marker
 ```
 
 The lab marker file (`.lab_mode_enabled`) is a safety gate. Without it, all scans are blocked.
@@ -186,6 +206,12 @@ python run_vapt.py --target http://192.168.0.102/dvwa/
 
 ```bash
 python run_recon.py --target http://192.168.0.102
+```
+
+### Autonomous agentic pentest (all-in-one)
+
+```bash
+python run_agent.py --target http://192.168.0.102
 ```
 
 ### Specific recon tools only
@@ -305,7 +331,162 @@ python run_recon.py --list-tools
 
 ---
 
-## 8. Burp Suite Integration
+## 8. run_agent.py — Agentic Mode
+
+`run_agent.py` is the most advanced entry point. It runs an autonomous **ReAct (Reason → Act → Observe → Reflect)** loop that intelligently sequences recon tools, discovers exploits, and maps findings to MITRE ATT&CK attack chains — all without manual tool selection.
+
+```
+python run_agent.py [OPTIONS]
+```
+
+**Options:**
+
+| Option | Short | Default | Description |
+|---|---|---|---|
+| `--target URL` | | — | Target URL or IP (must be in allowlist) |
+| `--max-iter N` | | `10` | Maximum agent iterations |
+| `--output DIR` | | `reports/agent` | Output directory for reports |
+| `--verbose` | `-v` | off | Show agent reasoning + reflection each step |
+| `--no-nvd` | | off | Disable NVD CVE API calls (offline mode) |
+| `--create-lab-marker` | | — | Create safety marker and exit |
+
+**Examples:**
+
+```bash
+# Full autonomous pentest
+python run_agent.py --target http://192.168.0.102
+
+# Cap at 6 iterations (faster, less thorough)
+python run_agent.py --target http://192.168.0.102 --max-iter 6
+
+# See the agent's reasoning at each step
+python run_agent.py --target http://192.168.0.102 --verbose
+
+# Offline mode — skip NVD CVE API lookups
+python run_agent.py --target http://192.168.0.102 --no-nvd
+
+# Custom output folder
+python run_agent.py --target http://192.168.0.102 --output reports/agent/pass1
+```
+
+### 8.1 How the Agent Works
+
+The agent maintains an **AgentContext** — a knowledge graph that accumulates findings across iterations. A rule-based **Planner** decides the next action based on what has been discovered so far:
+
+| Priority | Action | Triggers when |
+|---|---|---|
+| 1 | `initial_recon` | No data yet |
+| 2 | `subdomain_deep` | Subdomains discovered |
+| 3 | `web_discovery` | Technologies fingerprinted |
+| 4 | `exploit_lookup` | Findings available |
+| 5 | `chain_analysis` | Exploit report ready |
+| 6 | `osint` | Subdomains exist (external target) |
+| 7 | `vuln_scan` | Tech stack identified |
+| 8 | `smb_scan` | Port 445/139 found open |
+
+Each action feeds its results back into the context so later actions have richer data to work with.
+
+### 8.2 Exploit Intelligence Engine
+
+`modules/exploit_engine.py` is invoked during the `exploit_lookup` phase:
+
+- **searchsploit** — searches the local Exploit-DB copy on Kali for matching exploits (by technology name, service, or CVE)
+- **NVD CVE API v2** — enriches each match with CVSS score, vector, and description (no API key required; disable with `--no-nvd`)
+- **Metasploit hints** — curated mapping from CVE → MSF module for 15 major vulnerabilities
+
+Output includes:
+- Exploit table (title, type, platform, CVSS, severity)
+- `searchsploit -m <path>` copy commands
+- Ready-to-paste `msfconsole` module stubs
+
+### 8.3 MITRE ATT&CK Chain Analysis
+
+`modules/attack_chain.py` is invoked during the `chain_analysis` phase:
+
+- Maps every finding to MITRE ATT&CK tactic + technique via a 50+ keyword table
+- Builds a **directed attack graph** progressing through the kill chain
+- Scores each chain: `tactic_diversity × avg_exploitability × span_bonus`
+- Generates **named attack scenarios**:
+
+| Scenario | Tactics chained |
+|---|---|
+| Full Kill Chain | Recon → Initial Access → Execution → PrivEsc → Lateral Movement → Impact |
+| Data Breach Path | Initial Access → Credential Access → Collection → Exfiltration |
+| Ransomware Path | Initial Access → Execution → PrivEsc → Impact |
+
+Each chain includes:
+- ASCII attack path visualization
+- Step-by-step narrative (who, what, via which finding, with what severity)
+- Impact statement
+
+### 8.4 Agent Report
+
+Reports are written to `reports/agent/` as JSON + Markdown:
+
+```
+reports/agent/
+  agent_YYYYMMDD_HHMMSS.md       ← Full narrative report
+  agent_YYYYMMDD_HHMMSS.json     ← Machine-readable (all data)
+  agent_PARTIAL_YYYYMMDD_HHMMSS.md   ← Written on Ctrl+C
+```
+
+The Markdown report sections:
+1. Executive Summary
+2. Open Ports table
+3. Technologies detected
+4. WAF detected (if any)
+5. DNS records
+6. Subdomains
+7. Web paths discovered
+8. Security Findings (sorted by severity)
+9. **Exploit Intelligence** — table + MSF commands + searchsploit commands
+10. **MITRE ATT&CK Attack Chains** — ASCII paths + narratives for each chain
+11. Agent Reasoning Log — reasoning/observation/reflection per iteration
+
+### 8.5 Agent Terminal Output Example
+
+```
+  [Agent  1/10]  initial_recon
+    Observe: 3 port(s), 0 subdomain(s), 4 finding(s), 3 tech(s). Tools: nmap, nslookup, whatweb...
+
+  [Agent  2/10]  web_discovery
+    Observe: 0 port(s), 0 subdomain(s), 12 finding(s), 3 tech(s). Tools: ffuf, gobuster, nikto...
+
+  [Agent  3/10]  exploit_lookup
+    Observe: Exploit search complete: 18 matches (2 critical, 4 high). CVEs: CVE-2021-41773...
+
+  [Agent  4/10]  chain_analysis
+    Observe: 3 attack chain(s) built. Top chain: 'Initial Access → Execution' (score 4.8)...
+
+  ══════════════════════════════════════════════════════
+  AGENT COMPLETE
+  ══════════════════════════════════════════════════════
+  Report ID     : agent_20260613_142301
+  Duration      : 187s  (4 iterations)
+  Open ports    : 3
+  Technologies  : Apache/2.4.49, PHP/7.4, MySQL
+  Findings      : 16
+    CRITICAL    : 2
+    HIGH        : 5
+  Exploits      : 18 matches (2 critical, 4 high)
+  CVEs          : CVE-2021-41773, CVE-2021-42013
+  MSF modules   : 1 available
+
+  Attack chains : 3
+  Surface score : 6.2/10
+  ATT&CK tactic : Reconnaissance, Initial Access, Execution
+
+  Top chain     : Initial Access → Execution  (score 4.8)
+  Attack Path:
+    [T1190 — Initial Access]
+        ↓
+    [T1059 — Execution]
+  ══════════════════════════════════════════════════════
+```
+
+---
+
+## 9. Burp Suite Integration
 
 The `-r` flag (available on `run_vapt.py`) accepts any raw HTTP request file — the same format Burp Suite exports and `sqlmap -r` accepts.
 
@@ -372,7 +553,7 @@ python run_vapt.py -r burp_request.txt --verbose
 
 ---
 
-## 9. Authentication Options
+## 10. Authentication Options
 
 ### Option A — Burp Suite file (recommended)
 
@@ -410,7 +591,7 @@ python run_vapt.py -r burp_request.txt \
 
 ---
 
-## 10. Module Selection
+## 11. Module Selection
 
 By default, all 38 modules run. Use `--modules` to run specific ones:
 
@@ -480,7 +661,7 @@ python run_vapt.py --target http://target.com \
 
 ---
 
-## 11. Configuration Files
+## 12. Configuration Files
 
 ### `config/safety.yaml` — Safety and allowlist
 
@@ -549,7 +730,7 @@ modules:
 
 ---
 
-## 12. Scan Phases
+## 13. Scan Phases
 
 ### Phase 1 — Attack Surface Discovery (run_vapt.py only)
 
@@ -615,7 +796,7 @@ python run_vapt.py --target http://192.168.0.102/dvwa/ --llm --model llama3
 
 ---
 
-## 13. Understanding Reports
+## 14. Understanding Reports
 
 ### Web VAPT reports (`run_vapt.py`)
 
@@ -715,9 +896,9 @@ The overall risk score (0–100) is a weighted sum of findings by severity.
 
 ---
 
-## 14. Scan Modules Reference
+## 15. Scan Modules Reference
 
-See [Section 10 — Module Selection](#10-module-selection) for the full module name list.
+See [Section 11 — Module Selection](#11-module-selection) for the full module name list.
 
 ### How scan modules use the attack surface
 
@@ -733,7 +914,7 @@ See [Section 10 — Module Selection](#10-module-selection) for the full module 
 
 ---
 
-## 15. Troubleshooting
+## 16. Troubleshooting
 
 ### `[BLOCKED] Target is not in the web VAPT allowlist`
 
@@ -824,7 +1005,7 @@ sudo apt install seclists
 
 ---
 
-## 16. Workflow Examples
+## 17. Workflow Examples
 
 ### Example 1 — Quick passive check (no injection)
 
@@ -953,9 +1134,73 @@ python run_vapt.py --target http://192.168.0.102/protected/ \
 
 ---
 
-## 17. Recon Tools Reference
+### Example 12 — Full autonomous agentic assessment
 
-### 17.1 Overview
+```bash
+# One command — agent decides everything
+python run_agent.py --target http://192.168.0.102
+```
+
+The agent runs recon, fingerprinting, exploit lookup, and chain analysis automatically. Report is written to `reports/agent/`.
+
+---
+
+### Example 13 — Agent with verbose reasoning
+
+```bash
+# See the agent's reasoning, observation, and reflection at every step
+python run_agent.py --target http://192.168.0.102 --verbose --max-iter 6
+```
+
+Use this when you want to understand *why* the agent is making each decision.
+
+---
+
+### Example 14 — Agent offline (no NVD API)
+
+```bash
+# searchsploit only — no outbound HTTP calls to NVD
+python run_agent.py --target http://192.168.0.102 --no-nvd
+```
+
+Use in air-gapped lab environments where internet access is restricted.
+
+---
+
+### Example 15 — Three-tool full workflow (recommended)
+
+```bash
+# Step 1 — recon intelligence (fastest, standalone)
+python run_recon.py --target http://192.168.0.102 --output reports/recon/pass1
+
+# Step 2 — web vuln scan with Burp session
+python run_vapt.py -r burp.txt --output reports/web/pass1
+
+# Step 3 — agentic mode to tie it all together + exploit chains
+python run_agent.py --target http://192.168.0.102 --output reports/agent/pass1
+```
+
+Review all three reports together for a complete picture: recon data + specific injection findings + attack chain narrative.
+
+---
+
+### Example 16 — Agent + exploit database post-analysis
+
+After `run_agent.py` completes, use the MSF commands from the report directly:
+
+```bash
+# Copy an exploit to your working directory (path from report)
+searchsploit -m "exploits/linux/remote/50383.py"
+
+# Or paste the msfconsole stub from the report
+msfconsole -q -x "use exploit/multi/http/apache_normalize_path_rce; set RHOSTS 192.168.0.102; exploit"
+```
+
+---
+
+## 18. Recon Tools Reference
+
+### 18.1 Overview
 
 The `ReconEngine` (`modules/recon_tools.py`) integrates 29 Kali Linux reconnaissance tools. Run it via `run_recon.py`.
 
@@ -1022,7 +1267,7 @@ Output:
 
 ---
 
-### 17.2 Tool Details
+### 18.2 Tool Details
 
 #### nmap — Network Scanning
 
@@ -1226,7 +1471,7 @@ tools:
 
 ---
 
-### 17.3 Wordlists
+### 18.3 Wordlists
 
 Most fuzzing tools require wordlists from the **SecLists** collection:
 
@@ -1249,7 +1494,7 @@ Override in `config/web_vapt.yaml` under the relevant tool key.
 
 ---
 
-### 17.4 Recon Tool Configuration Quick Reference
+### 18.4 Recon Tool Configuration Quick Reference
 
 ```yaml
 # Enable a non-default tool
@@ -1288,3 +1533,15 @@ tools:
 
 *AI Red Team Harness v3 — For authorised security assessments only.*
 *Python 3.11+ · httpx 0.27+ · PyYAML 6.0+*
+
+---
+
+### Module map
+
+| Module | File | Purpose |
+|---|---|---|
+| `WebVAPTEngine` | `modules/web_vapt_engine.py` | Web vulnerability scan engine |
+| `ReconEngine` | `modules/recon_tools.py` | 29 Kali tool orchestrator |
+| `ExploitEngine` | `modules/exploit_engine.py` | searchsploit + NVD + MSF mapping |
+| `AttackChainBuilder` | `modules/attack_chain.py` | MITRE ATT&CK chain analysis |
+| `PentestAgent` | `modules/agent_loop.py` | Autonomous ReAct agentic loop |
